@@ -29,6 +29,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',
+    'django.contrib.sites',
     'channels',
     'users',
     'waste',
@@ -107,6 +109,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'waste_management.context_processors.seo_context',
             ],
         },
     },
@@ -114,8 +117,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'waste_management.wsgi.application'
 
-# Database Configuration
+# Database Configuration for Neon
 DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+    # Convert postgres:// to postgresql:// for Django
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
 
 if DATABASE_URL:
     DATABASES = {
@@ -161,7 +168,12 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+SITE_ID = 1
 
+# SEO Settings
+SITE_NAME = "Clean Uganda"
+SITE_DESCRIPTION = "Uganda's leading waste management and recycling platform"
+META_KEYWORDS = "Clean Uganda, waste management Uganda, recycling Kampala, clean environment Uganda"
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'

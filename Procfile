@@ -1,1 +1,2 @@
-web: daphne waste_management.wsgi --log-file -
+web: gunicorn waste_management.wsgi:application
+worker: python manage.py runworker

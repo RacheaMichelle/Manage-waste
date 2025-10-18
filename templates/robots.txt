@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /private/
+
+# Sitemap location (update with your actual domain later)
+Sitemap: https://your-app.up.railway.app/sitemap.xml

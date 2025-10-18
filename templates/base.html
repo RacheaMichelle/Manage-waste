@@ -1,16 +1,73 @@
 <!DOCTYPE html>
 {% load notification_tags %}
- {% load static %} 
+{% load static %}
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Waste Management Platform</title>
+  
+  <!-- ==================== SEO META TAGS FOR CLEAN UGANDA ==================== -->
+  <title>Clean Uganda - Waste Management & Recycling Platform | Kampala, Uganda</title>
+  <meta name="description" content="Clean Uganda - Uganda's leading waste management and recycling platform. Connect with recyclers in Kampala, reduce waste, and create a cleaner environment across Uganda.">
+  <meta name="keywords" content="Clean Uganda, waste management Uganda, recycling Kampala, clean environment Uganda, sustainability Uganda, waste collection Uganda, eco-friendly Uganda, recycling companies Uganda">
+  <meta name="author" content="Clean Uganda">
+  
+  <!-- Geographic Meta Tags for Uganda -->
+  <meta name="geo.region" content="UG" />
+  <meta name="geo.placename" content="Kampala, Uganda" />
+  <meta name="geo.position" content="0.3476;32.5825" />
+  <meta name="ICBM" content="0.3476, 32.5825" />
+  
+  <!-- Open Graph Meta Tags for Social Media -->
+  <meta property="og:title" content="Clean Uganda - Waste Management & Recycling Platform">
+  <meta property="og:description" content="Uganda's leading waste management and recycling solution. Connect recyclers with waste producers for a cleaner Uganda.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://cleanuganda.com">
+  <meta property="og:image" content="{% static 'images/clean-uganda-og.jpg' %}">
+  <meta property="og:site_name" content="Clean Uganda">
+  <meta property="og:locale" content="en_UG">
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Clean Uganda">
+  <meta name="twitter:description" content="Waste Management & Recycling Platform for Uganda">
+  <meta name="twitter:image" content="{% static 'images/clean-uganda-twitter.jpg' %}">
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://cleanuganda.com">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/apple-touch-icon.png' %}">
+  
+  <!-- Structured Data for Google (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Clean Uganda",
+    "description": "Waste Management and Recycling Platform for Uganda",
+    "url": "https://cleanuganda.com",
+    "logo": "https://cleanuganda.com{% static 'images/logo.png' %}",
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": "UG"
+    },
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "customer service",
+      "areaServed": "UG"
+    },
+    "sameAs": []
+  }
+  </script>
+  <!-- ==================== END SEO META TAGS ==================== -->
+
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-  {% load static %}
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
   <style>
     /* Mobile-specific styles */
     @media (max-width: 767px) {
@@ -49,8 +106,9 @@
         <i class="fas fa-bars fa-lg"></i>
       </button>
       
+      <!-- Updated Site Name for SEO -->
       <a href="{% url 'home' %}" class="text-2xl font-extrabold hover:text-green-300 transition">
-        Waste Management Platform
+        <i class="fas fa-recycle mr-2"></i>Clean Uganda
       </a>
     </div>
 
@@ -60,7 +118,6 @@
         <a href="{% url 'logout' %}" class="hover:text-green-300 transition">Logout</a>
       {% else %}
         <a href="{% url 'login' %}" class="hover:text-green-300 transition">Login</a>
-        
       {% endif %}
     </nav>
 
@@ -77,7 +134,6 @@
         <a href="{% url 'logout' %}" class="hover:text-green-300 transition py-2">Logout</a>
       {% else %}
         <a href="{% url 'login' %}" class="hover:text-green-300 transition py-2">Login</a>
-       
       {% endif %}
       
       {% if user.is_authenticated and not is_quick_access %}
@@ -112,7 +168,7 @@
     <aside class="bg-green-700 text-white w-64 flex-shrink-0 flex flex-col transition-transform transform md:translate-x-0 -translate-x-full md:relative fixed top-0 bottom-0 z-30"
       id="sidebar">
       <div class="flex items-center justify-between px-6 py-4 border-b border-green-600">
-        <span class="text-xl font-bold">Menu</span>
+        <span class="text-xl font-bold">Clean Uganda Menu</span>
         <button id="sidebar-close" class="md:hidden focus:outline-none" aria-label="Close sidebar">
           <i class="fas fa-times fa-lg"></i>
         </button>

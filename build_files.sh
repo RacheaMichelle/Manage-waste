@@ -1,10 +1,13 @@
 #!/bin/bash
+set -o errexit
 
-# Install Python dependencies
+echo "Installing dependencies..."
 pip install -r requirements.txt
 
-# Collect static files
+echo "Running migrations..."
+python manage.py migrate
+
+echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
-# Make the build script executable
-chmod +x build_files.sh
+echo "Build completed successfully!"

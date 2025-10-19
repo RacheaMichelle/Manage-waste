@@ -11,13 +11,16 @@ echo "Creating directories..."
 mkdir -p staticfiles
 mkdir -p media
 
+# Make Django migrations
+echo "Creating migrations..."
+python manage.py makemigrations
+
+# Run database migrations
+echo "Running migrations..."
+python manage.py migrate --noinput
+
 # Collect static files
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
-
-# Run database migrations (if needed)
-# Note: For Vercel, you might want to run migrations separately
-# echo "Running migrations..."
-# python manage.py migrate --noinput
 
 echo "=== Build completed successfully ==="

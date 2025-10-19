@@ -24,7 +24,7 @@ ALLOWED_HOSTS = [
 
 # Application definition
 INSTALLED_APPS = [
-    'daphne',
+    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sitemaps',
     'django.contrib.sites',
-    'channels',
+    
     'users',
     'waste',
     'matching',
@@ -58,9 +58,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'waste_management.urls'
 
-# ASGI for Django Channels
-ASGI_APPLICATION = 'waste_management.asgi.application'
-
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 # Redis Configuration - FIXED
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
@@ -73,28 +74,7 @@ EMAIL_HOST_USER = 'rachealnannozi77@gmail.com'
 EMAIL_HOST_PASSWORD = 'iaegpsdmhisbhwfp'
 DEFAULT_FROM_EMAIL = 'rachealnannozi77@gmail.com'
 
-# FIXED: Channel layers with simplified Redis configuration
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [(REDIS_URL)],
-        },
-    },
-}
 
-# FIXED: Cache configuration - Remove problematic SSL options
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            # Remove SSL options for local development
-            # "SSL_CERT_REQS": None,
-        }
-    }
-}
 
 # FIXED: Use database sessions instead of cache sessions to avoid Redis issues
 SESSION_ENGINE = "django.contrib.sessions.backends.db"  # Changed from cache to db

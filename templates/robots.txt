@@ -5,5 +5,8 @@ Allow: /
 Disallow: /admin/
 Disallow: /private/
 
-# Sitemap location (update with your actual domain later)
-Sitemap: https://your-app.up.railway.app/sitemap.xml
+# Sitemap location
+Sitemap: https://cleanuganda.com/sitemap.xml
+
+# Optional crawl delay
+Crawl-delay: 1

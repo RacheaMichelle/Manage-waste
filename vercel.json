@@ -1,0 +1,49 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "waste_management/wsgi.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "build_files.sh",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "staticfiles"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/media/(.*)",
+      "dest": "/media/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "waste_management/wsgi.py"
+    }
+  ],
+  "env": {
+    "DEBUG": "False",
+    "SECRET_KEY": "@secret_key",
+    "DATABASE_URL": "@database_url",
+    "PYTHONPATH": "/var/task",
+    "DJANGO_SETTINGS_MODULE": "waste_management.settings"
+  },
+  "build": {
+    "env": {
+      "PYTHON_VERSION": "3.11",
+      "NODE_VERSION": "18"
+    }
+  },
+  "functions": {
+    "waste_management/wsgi.py": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["all"]
+}

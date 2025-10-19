@@ -13,7 +13,7 @@ mkdir -p media
 
 # Make Django migrations
 echo "Creating migrations..."
-python manage.py makemigrations
+python manage.py makemigrations users waste matching analytics education educ report chatbot
 
 # Run database migrations
 echo "Running migrations..."

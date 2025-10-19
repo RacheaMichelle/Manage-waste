@@ -17,8 +17,6 @@ def register(request):
             except Exception as e:
                 messages.error(request, f'Error creating account: {str(e)}')
         else:
-            # Print form errors for debugging
-            print("Form errors:", form.errors)
             messages.error(request, 'Please correct the errors below.')
     else:
         form = UserRegisterForm()
@@ -30,7 +28,6 @@ def profile(request):
     try:
         profile = request.user.profile
     except Profile.DoesNotExist:
-        # Create profile if it doesn't exist
         profile = Profile.objects.create(user=request.user)
     
     is_quick_access = profile.user_type == 'quick_access'
@@ -55,7 +52,6 @@ def user_login(request):
             login(request, user)
             messages.success(request, 'Login successful!')
             
-            # Check if next parameter exists
             next_url = request.GET.get('next')
             if next_url:
                 return redirect(next_url)
@@ -65,13 +61,11 @@ def user_login(request):
     
     return render(request, 'users/login.html')
 
-# ADD THIS MISSING FUNCTION
 def user_logout(request):
     logout(request)
     messages.success(request, 'You have been logged out.')
     return redirect('home')
 
-# ADD THESE MISSING FUNCTIONS TOO
 def quick_register(request):
     if request.method == 'POST':
         form = QuickRegisterForm(request.POST)

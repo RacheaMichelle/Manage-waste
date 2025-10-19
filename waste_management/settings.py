@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
-DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'  # Default to False for production
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -24,7 +24,6 @@ ALLOWED_HOSTS = [
 
 # Application definition
 INSTALLED_APPS = [
-    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -47,7 +46,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Keep this for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -58,12 +57,14 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'waste_management.urls'
 
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-# Redis Configuration - FIXED
-REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+# Security settings - Only enable in production
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+else:
+    SECURE_SSL_REDIRECT = False
 
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -74,11 +75,8 @@ EMAIL_HOST_USER = 'rachealnannozi77@gmail.com'
 EMAIL_HOST_PASSWORD = 'iaegpsdmhisbhwfp'
 DEFAULT_FROM_EMAIL = 'rachealnannozi77@gmail.com'
 
-
-
-# FIXED: Use database sessions instead of cache sessions to avoid Redis issues
-SESSION_ENGINE = "django.contrib.sessions.backends.db"  # Changed from cache to db
-# SESSION_CACHE_ALIAS = "default"  # Comment out or remove this line
+# Use database sessions instead of cache to avoid Redis dependency
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 TEMPLATES = [
     {
@@ -99,22 +97,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'waste_management.wsgi.application'
 
-# Database Configuration for Neon
+# Database Configuration for Neon - FIXED
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
-    # Convert postgres:// to postgresql:// for Django
-    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-
 if DATABASE_URL:
+    # Handle both postgres:// and postgresql:// formats
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
+            conn_health_checks=True,
             ssl_require=True
         )
     }
 else:
+    # Fallback to SQLite for local development
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -122,18 +122,32 @@ else:
         }
     }
 
-# Static files
+# Static files configuration for Vercel
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# WhiteNoise configuration
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-# Make sure these directories exist
-os.makedirs(BASE_DIR / 'static', exist_ok=True)
-os.makedirs(BASE_DIR / 'staticfiles', exist_ok=True)
+
+# Ensure static directories exist (for local development)
+try:
+    os.makedirs(BASE_DIR / 'static', exist_ok=True)
+    os.makedirs(BASE_DIR / 'staticfiles', exist_ok=True)
+except OSError:
+    pass
 
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Ensure media directory exists
+try:
+    os.makedirs(MEDIA_ROOT, exist_ok=True)
+except OSError:
+    pass
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -150,12 +164,14 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
 SITE_ID = 1
 
 # SEO Settings
 SITE_NAME = "Clean Uganda"
 SITE_DESCRIPTION = "Uganda's leading waste management and recycling platform"
 META_KEYWORDS = "Clean Uganda, waste management Uganda, recycling Kampala, clean environment Uganda"
+
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -168,3 +184,37 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/users/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+# Vercel-specific settings
+if os.environ.get('VERCEL'):
+    # Vercel deployment specific settings
+    DEBUG = False
+    
+    # Ensure all required environment variables are set
+    if not os.environ.get('SECRET_KEY'):
+        raise Exception("SECRET_KEY environment variable is required for production")
+    
+    if not os.environ.get('DATABASE_URL'):
+        raise Exception("DATABASE_URL environment variable is required for production")
+
+# Logging configuration to help debug Vercel issues
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

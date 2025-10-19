@@ -1,50 +1,36 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .models import Profile
 
 class UserRegisterForm(UserCreationForm):
     user_type = forms.ChoiceField(
         choices=Profile.USER_TYPE_CHOICES,
-        widget=forms.RadioSelect
+        widget=forms.RadioSelect,
+        initial='household'
     )
-    location = forms.CharField(max_length=100)
+    location = forms.CharField(
+        max_length=100, 
+        required=True,
+        widget=forms.TextInput(attrs={'placeholder': 'Enter your location'})
+    )
     contact = forms.CharField(
         max_length=15,
         required=False,
-        help_text="Phone number in format: +256XXXXXXXXX"
+        widget=forms.TextInput(attrs={'placeholder': '+256XXXXXXXXX'})
     )
     accepted_waste_types = forms.MultipleChoiceField(
         choices=Profile.WASTE_TYPE_CHOICES,
         required=False,
         widget=forms.CheckboxSelectMultiple
     )
+    email = forms.EmailField(required=True)
 
     class Meta:
         model = User
         fields = ['username', 'email', 'password1', 'password2', 'user_type', 
                  'location', 'contact', 'accepted_waste_types']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['password1'].help_text = """
-        <ul class="text-xs text-gray-500 list-disc pl-5">
-            <li>At least 8 characters</li>
-            <li>Not too common</li>
-            <li>Not entirely numeric</li>
-            <li>Shouldn't be similar to username</li>
-        </ul>
-        """
-        
-    def clean_password1(self):
-        password1 = self.cleaned_data.get('password1')
-        try:
-            validate_password(password1, self.instance)
-        except ValidationError as error:
-            self.add_error('password1', error)
-        return password1
 
     def clean(self):
         cleaned_data = super().clean()
@@ -52,48 +38,65 @@ class UserRegisterForm(UserCreationForm):
         
         if user_type in ['collector', 'recycler']:
             if not cleaned_data.get('contact'):
-                self.add_error('contact', "Contact information is required for collectors/recyclers")
+                self.add_error('contact', "Contact information is required for collectors and recyclers")
             
-            # Check if at least one waste type is selected
             if not cleaned_data.get('accepted_waste_types'):
-                self.add_error('accepted_waste_types', "Please select at least one waste type you collect/produce")
+                self.add_error('accepted_waste_types', "Please select at least one waste type")
         
         return cleaned_data
 
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+        
+        if commit:
+            user.save()
+            # Get or create profile
+            profile, created = Profile.objects.get_or_create(user=user)
+            profile.user_type = self.cleaned_data['user_type']
+            profile.location = self.cleaned_data['location']
+            profile.contact = self.cleaned_data.get('contact', '')
+            
+            # Convert list to comma-separated string
+            waste_types = self.cleaned_data.get('accepted_waste_types', [])
+            profile.accepted_waste_types = ','.join(waste_types) if waste_types else ''
+            
+            profile.save()
+        
+        return user
+
 class QuickRegisterForm(UserCreationForm):
     user_type = forms.ChoiceField(
-        choices=Profile.USER_TYPE_CHOICES,
+        choices=[('quick_access', 'Quick Access')],
         widget=forms.RadioSelect,
-        required=False
+        initial='quick_access'
     )
-    location = forms.CharField(max_length=100, required=False)
+    location = forms.CharField(
+        max_length=100, 
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Optional location'})
+    )
     contact = forms.CharField(
         max_length=15,
         required=False,
-        help_text="Phone number in format: +256XXXXXXXXX"
+        widget=forms.TextInput(attrs={'placeholder': 'Optional contact'})
     )
 
     class Meta:
         model = User
         fields = ['username', 'password1', 'password2', 'user_type', 'location', 'contact']
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['password1'].help_text = """
-        <ul class="text-xs text-gray-500 list-disc pl-5">
-            <li>At least 8 characters</li>
-            <li>Not too common</li>
-            <li>Not entirely numeric , mix of letters(capital and small),numbers and special symbols,</li>
-        </ul>
-        """
-
     def save(self, commit=True):
-        user = super().save(commit)
-        profile, created = Profile.objects.get_or_create(user=user)
-        profile.user_type = self.cleaned_data.get('user_type') or 'quick_access'
-        profile.location = self.cleaned_data.get('location') or None
-        profile.contact = self.cleaned_data.get('contact') or None
-        profile.save()
+        user = super().save(commit=False)
+        
+        if commit:
+            user.save()
+            profile, created = Profile.objects.get_or_create(user=user)
+            profile.user_type = self.cleaned_data.get('user_type', 'quick_access')
+            profile.location = self.cleaned_data.get('location', '')
+            profile.contact = self.cleaned_data.get('contact', '')
+            profile.save()
+        
         return user
 
 class ProfileEditForm(forms.ModelForm):
@@ -102,18 +105,18 @@ class ProfileEditForm(forms.ModelForm):
         fields = ['user_type', 'location', 'contact', 'accepted_waste_types']
         widgets = {
             'user_type': forms.Select(attrs={
-                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200'
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500'
             }),
             'location': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200',
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500',
                 'placeholder': 'Enter your location'
             }),
             'contact': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200',
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500',
                 'placeholder': '+256 XXX XXX XXX'
             }),
             'accepted_waste_types': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200',
-                'placeholder': 'Plastic, Paper, Glass, etc.'
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500',
+                'placeholder': 'plastic, paper, glass, etc.'
             }),
         }

@@ -7,7 +7,10 @@
     },
     {
       "src": "build_files.sh",
-      "use": "@vercel/static-build"
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "staticfiles"
+      }
     }
   ],
   "routes": [
@@ -30,7 +33,7 @@
     "DATABASE_URL": "postgresql://neondb_owner:npg_qw4cSXLRezU0@ep-restless-lake-abe1tpdg-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require",
     "PYTHONPATH": "/var/task",
     "DJANGO_SETTINGS_MODULE": "waste_management.settings",
-    "ALLOWED_HOSTS": ".vercel.app,.now.app,localhost,127.0.0.1"
+    "ALLOWED_HOSTS": ".vercel.app,.now.sh,localhost,127.0.0.1"
   },
   "build": {
     "env": {

@@ -90,6 +90,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'waste_management.context_processors.seo_context',
+                'users.context_processors.quick_access_status', 
             ],
         },
     },

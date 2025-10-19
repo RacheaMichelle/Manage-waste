@@ -4,6 +4,13 @@
     {
       "src": "waste_management/wsgi.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "build_files.sh",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "staticfiles"
+      }
     }
   ],
   "routes": [
@@ -19,8 +26,8 @@
   "env": {
     "DEBUG": "False",
     "SECRET_KEY": "i(s37lgb*j3pwnfz9z9a8z$b3j1-5sk0!1dkv^-_-#cr02mo)q",
-    "DATABASE_URL": "postgresql://neondb_owner:npg_qw4cSXLRezU0@ep-restless-lake-abe1tpdg-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require",
     "PYTHONPATH": "/var/task",
-    "DJANGO_SETTINGS_MODULE": "waste_management.settings"
+    "DJANGO_SETTINGS_MODULE": "waste_management.settings",
+    "ALLOWED_HOSTS": ".vercel.app,.now.sh,localhost,127.0.0.1"
   }
 }

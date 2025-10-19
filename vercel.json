@@ -30,13 +30,13 @@
   "env": {
     "DEBUG": "False",
     "SECRET_KEY": "i(s37lgb*j3pwnfz9z9a8z$b3j1-5sk0!1dkv^-_-#cr02mo)q",
-    "DATABASE_URL": "@database_url",
+    "DATABASE_URL": "postgresql://neondb_owner:npg_qw4cSXLRezU0@ep-restless-lake-abe1tpdg-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=requirel",
     "PYTHONPATH": "/var/task",
     "DJANGO_SETTINGS_MODULE": "waste_management.settings"
   },
   "build": {
     "env": {
-      "PYTHON_VERSION": "3.11"
+      "PYTHON_VERSION": "3.11.5"
     }
   }
 }

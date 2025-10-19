@@ -98,13 +98,40 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'waste_management.wsgi.application'
 
-# DATABASE CONFIGURATION - USING SQLITE ONLY
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# DATABASE CONFIGURATION - FIXED FOR NEON.POSTGRESQL
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    # Clean the database URL - remove any problematic parameters
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    
+    # Remove any query parameters that might cause issues
+    if '?' in DATABASE_URL:
+        base_url = DATABASE_URL.split('?')[0]
+        DATABASE_URL = base_url
+    
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'neondb',
+            'USER': 'neondb_owner',
+            'PASSWORD': 'npg_qw4cSXLRezU0',
+            'HOST': 'ep-restless-lake-abe1tpdg-pooler.eu-west-2.aws.neon.tech',
+            'PORT': '5432',
+            'OPTIONS': {
+                'sslmode': 'require',
+            },
+        }
     }
-}
+else:
+    # Fallback for local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Static files configuration
 STATIC_URL = '/static/'
@@ -186,6 +213,11 @@ LOGGING = {
         'django': {
             'handlers': ['console'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # This will show SQL queries
             'propagate': False,
         },
     },

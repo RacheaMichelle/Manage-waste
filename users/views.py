@@ -121,3 +121,51 @@ def profile_edit(request):
         form = ProfileEditForm(instance=profile)
     
     return render(request, 'users/profile_edit.html', {'form': form})
+
+@csrf_exempt
+def debug_database(request):
+    """Check database status"""
+    from django.contrib.auth import get_user_model
+    from django.db import connection
+    import json
+    
+    try:
+        # Test database connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            db_test = "✅ Database connected"
+        
+        # Check if auth_user table exists
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'auth_user'
+                );
+            """)
+            auth_user_exists = cursor.fetchone()[0]
+        
+        # Check if users_profile table exists  
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'users_profile'
+                );
+            """)
+            profile_exists = cursor.fetchone()[0]
+        
+        # Count users
+        User = get_user_model()
+        user_count = User.objects.count()
+        
+        return JsonResponse({
+            'database': db_test,
+            'auth_user_table_exists': auth_user_exists,
+            'users_profile_table_exists': profile_exists,
+            'total_users': user_count,
+            'tables': list(connection.introspection.table_names())
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)})

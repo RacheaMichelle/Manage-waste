@@ -10,6 +10,7 @@ urlpatterns = [
     path('quick-dashboard/', views.quick_dashboard, name='quick_dashboard'),
     path('profile/edit/', views.profile_edit, name='profile_edit'),
     path('quick-register/', views.quick_register, name='quick_register'),
+    path('debug-db/', views.debug_database, name='debug_db'),
     
     path('password-reset/', 
          auth_views.PasswordResetView.as_view(

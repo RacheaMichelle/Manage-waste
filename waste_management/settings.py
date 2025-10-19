@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'  # Default to False for production
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -46,7 +46,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Keep this for static files
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,7 +75,7 @@ EMAIL_HOST_USER = 'rachealnannozi77@gmail.com'
 EMAIL_HOST_PASSWORD = 'iaegpsdmhisbhwfp'
 DEFAULT_FROM_EMAIL = 'rachealnannozi77@gmail.com'
 
-# Use database sessions instead of cache to avoid Redis dependency
+# Use database sessions
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 TEMPLATES = [
@@ -98,32 +98,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'waste_management.wsgi.application'
 
-# Database Configuration for Neon - FIXED
-DATABASE_URL = os.environ.get('DATABASE_URL')
-
-if DATABASE_URL:
-    # Handle both postgres:// and postgresql:// formats
-    if DATABASE_URL.startswith('postgres://'):
-        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True
-        )
+# DATABASE CONFIGURATION - USING SQLITE ONLY
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    # Fallback to SQLite for local development
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
-# Static files configuration for Vercel
+# Static files configuration
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
@@ -133,7 +116,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # WhiteNoise configuration
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Ensure static directories exist (for local development)
+# Ensure static directories exist
 try:
     os.makedirs(BASE_DIR / 'static', exist_ok=True)
     os.makedirs(BASE_DIR / 'staticfiles', exist_ok=True)
@@ -186,19 +169,7 @@ LOGIN_URL = '/users/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Vercel-specific settings
-if os.environ.get('VERCEL'):
-    # Vercel deployment specific settings
-    DEBUG = False
-    
-    # Ensure all required environment variables are set
-    if not os.environ.get('SECRET_KEY'):
-        raise Exception("SECRET_KEY environment variable is required for production")
-    
-    if not os.environ.get('DATABASE_URL'):
-        raise Exception("DATABASE_URL environment variable is required for production")
-
-# Logging configuration to help debug Vercel issues
+# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

@@ -1,15 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from users.models import Profile
 from waste.models import WasteListing
-from django.views.decorators.http import require_POST
-from .models import DismissedMatch  # Add this import
-
-
-from .models import Notification
+from .models import DismissedMatch, Notification
 from django.core.paginator import Paginator
-
 
 @login_required
 def matches(request):
@@ -87,6 +84,7 @@ def matches(request):
         'matches': matches,
         'user_profile': user_profile
     })
+
 @login_required
 def notifications(request):
     notifications = Notification.objects.filter(
@@ -135,3 +133,32 @@ def delete_match(request, listing_id):
     DismissedMatch.objects.get_or_create(user=request.user, listing=listing)
     messages.success(request, "Match deleted successfully.")
     return redirect('matches')
+
+# API endpoints for AJAX polling
+@login_required
+def unread_notifications_count(request):
+    count = Notification.objects.filter(
+        recipient=request.user, 
+        is_read=False
+    ).count()
+    return JsonResponse({'count': count})
+
+@login_required
+def notifications_api(request):
+    notifications = Notification.objects.filter(
+        recipient=request.user
+    ).order_by('-created_at')[:10]
+    
+    data = {
+        'notifications': [
+            {
+                'id': n.id,
+                'message': n.message,
+                'is_read': n.is_read,
+                'created_at': n.created_at.strftime('%Y-%m-%d %H:%M'),
+                'url': f"/notifications/mark-read/{n.id}/" if not n.is_read else ""
+            }
+            for n in notifications
+        ]
+    }
+    return JsonResponse(data)

@@ -35,9 +35,9 @@
   <!-- Canonical URL -->
   <link rel="canonical" href="https://cleanuganda.com">
   
-  <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
-  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/apple-touch-icon.png' %}">
+  <!-- Favicon - Simple SVG fallback to avoid 404 errors -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
   
   <!-- Structured Data for Google (JSON-LD) -->
   <script type="application/ld+json">
@@ -103,9 +103,15 @@
     .notification-pulse {
       animation: pulse 1s ease-in-out;
     }
+
+    /* Loading states */
+    .loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
   </style>
 </head>
-<body class="bg-gray-100 flex flex-col min-h-screen">
+<body class="bg-gray-100 flex flex-col min-h-screen {% if user.is_authenticated %}user-authenticated{% endif %}">
 
   <!-- Top Navbar -->
   <header class="bg-green-700 text-white shadow-md flex justify-between items-center px-6 py-3 sticky top-0 z-40">
@@ -127,6 +133,7 @@
         <a href="{% url 'logout' %}" class="hover:text-green-300 transition">Logout</a>
       {% else %}
         <a href="{% url 'login' %}" class="hover:text-green-300 transition">Login</a>
+        <a href="{% url 'register' %}" class="hover:text-green-300 transition">Register</a>
       {% endif %}
     </nav>
 
@@ -143,6 +150,7 @@
         <a href="{% url 'logout' %}" class="hover:text-green-300 transition py-2">Logout</a>
       {% else %}
         <a href="{% url 'login' %}" class="hover:text-green-300 transition py-2">Login</a>
+        <a href="{% url 'register' %}" class="hover:text-green-300 transition py-2">Register</a>
       {% endif %}
       
       {% if user.is_authenticated and not is_quick_access %}
@@ -201,7 +209,7 @@
         <a href="{% url 'resources' %}" class="flex items-center px-3 py-2 rounded hover:bg-green-600 transition">
           <i class="fas fa-book mr-3"></i> Resources
         </a>
-        <a href="{% url 'waste_quiz' %}" class="flex items-center px-3 py-2 rounded hover:bg-green-600 transition">
+        <a href="{% url 'waste_quiz' %}" class="flex items-center px-3 py-2 rounded hover:bg-green-300 transition">
           <i class="fas fa-question-circle mr-3"></i> Waste Quiz
         </a>
         <a href="{% url 'report_dumping' %}" class="flex items-center px-3 py-2 rounded hover:bg-green-600 transition">
@@ -224,11 +232,12 @@
       {% if messages %}
         {% for message in messages %}
           <div class="alert alert-{{ message.tags }} mb-4 p-4 rounded-lg flex justify-between items-center
-                {% if message.tags == 'success' %}bg-green-100 text-green-800
-                {% elif message.tags == 'error' %}bg-red-100 text-red-800
-                {% else %}bg-blue-100 text-blue-800{% endif %} transition">
+                {% if message.tags == 'success' %}bg-green-100 text-green-800 border border-green-300
+                {% elif message.tags == 'error' %}bg-red-100 text-red-800 border border-red-300
+                {% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800 border border-yellow-300
+                {% else %}bg-blue-100 text-blue-800 border border-blue-300{% endif %} transition">
             <span>{{ message }}</span>
-            <button type="button" class="text-lg" onclick="this.parentElement.remove()" aria-label="Dismiss message">&times;</button>
+            <button type="button" class="text-lg hover:opacity-70 transition" onclick="this.parentElement.remove()" aria-label="Dismiss message">&times;</button>
           </div>
         {% endfor %}
       {% endif %}
@@ -288,30 +297,61 @@
       }
       
       window.addEventListener('resize', handleResize);
+
+      // Auto-dismiss messages after 5 seconds
+      setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(alert => {
+          alert.style.opacity = '0';
+          setTimeout(() => alert.remove(), 300);
+        });
+      }, 5000);
     });
   </script>
 
-  <!-- AJAX Polling for Notifications -->
+  <!-- AJAX Polling for Notifications - FIXED VERSION -->
   <script>
     let currentNotificationCount = 0;
     let pollInterval;
 
+    // Function to check if user is authenticated
+    function isUserAuthenticated() {
+      return document.body.classList.contains('user-authenticated');
+    }
+
     // Function to poll for notifications
     function pollNotifications() {
+      // Only poll if user is authenticated
+      if (!isUserAuthenticated()) {
+        console.log('User not authenticated, skipping notification poll');
+        return;
+      }
+
       fetch('/matching/api/unread-count/')
         .then(response => {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
+          // Handle redirects (302 status) - user needs to login
+          if (response.status === 302 || response.status === 403) {
+            console.log('Authentication required for notifications');
+            stopNotificationPolling();
+            return null;
           }
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
           return response.json();
         })
         .then(data => {
-          updateNotificationBadges(data.count);
+          if (data && typeof data.count === 'number') {
+            updateNotificationBadges(data.count);
+          }
         })
         .catch(error => {
           console.error('Error fetching notifications:', error);
-          // Retry after 10 seconds on error
-          setTimeout(pollNotifications, 10000);
+          // Don't retry immediately for auth errors
+          if (!error.message.includes('302') && !error.message.includes('403')) {
+            setTimeout(pollNotifications, 10000); // Retry after 10 seconds for other errors
+          }
         });
     }
 
@@ -325,23 +365,18 @@
       badges.forEach(badge => {
         if (badge) {
           if (count > 0) {
-            badge.textContent = count;
+            badge.textContent = count > 99 ? '99+' : count;
             badge.style.display = 'flex';
             
             // Add pulse animation when count increases
-            if (count > currentNotificationCount) {
+            if (count > currentNotificationCount && currentNotificationCount > 0) {
               badge.classList.add('notification-pulse');
               setTimeout(() => {
                 badge.classList.remove('notification-pulse');
               }, 1000);
               
               // Show browser notification if permission granted
-              if ('Notification' in window && Notification.permission === 'granted' && count > currentNotificationCount) {
-                new Notification('Clean Uganda', {
-                  body: `You have ${count} unread notification${count > 1 ? 's' : ''}`,
-                  icon: '{% static "images/logo.png" %}'
-                });
-              }
+              showBrowserNotification(count);
             }
           } else {
             badge.style.display = 'none';
@@ -350,6 +385,25 @@
       });
 
       currentNotificationCount = count;
+    }
+
+    // Show browser notification
+    function showBrowserNotification(count) {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Clean Uganda', {
+          body: `You have ${count} unread notification${count > 1 ? 's' : ''}`,
+          icon: '{% static "images/logo.png" %}',
+          tag: 'clean-uganda-notification'
+        });
+      }
+    }
+
+    // Stop notification polling
+    function stopNotificationPolling() {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
     }
 
     // Request notification permission
@@ -365,29 +419,28 @@
 
     // Start polling when page loads
     document.addEventListener('DOMContentLoaded', function() {
-      // Initial poll
-      pollNotifications();
-      
+      // Only start polling if user is authenticated
+      if (isUserAuthenticated()) {
+        // Initial poll after a short delay
+        setTimeout(pollNotifications, 1000);
+        
+        // Set up polling interval (every 30 seconds)
+        pollInterval = setInterval(pollNotifications, 30000);
+        
+        // Also poll when page becomes visible (user returns to tab)
+        document.addEventListener('visibilitychange', function() {
+          if (!document.hidden && isUserAuthenticated()) {
+            pollNotifications();
+          }
+        });
+      }
+
       // Request notification permission
       requestNotificationPermission();
-      
-      // Set up polling interval (every 30 seconds)
-      pollInterval = setInterval(pollNotifications, 30000);
-      
-      // Also poll when page becomes visible (user returns to tab)
-      document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-          pollNotifications();
-        }
-      });
     });
 
     // Stop polling when page is unloaded
-    window.addEventListener('beforeunload', function() {
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-    });
+    window.addEventListener('beforeunload', stopNotificationPolling);
   </script>
 
   {% block scripts %}{% endblock %}

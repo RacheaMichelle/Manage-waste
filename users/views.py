@@ -1,9 +1,11 @@
 from django.shortcuts import render, redirect
+from django.http import JsonResponse 
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import UserRegisterForm, QuickRegisterForm, ProfileEditForm
 from .models import Profile
+from django.views.decorators.csrf import csrf_exempt 
 
 def register(request):
     if request.method == 'POST':

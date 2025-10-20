@@ -105,25 +105,33 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
-# Email Configuration - FIXED & OPTIMIZED
+# Email Configuration - IMPROVED FOR RENDER
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 
-if DEBUG or not SENDGRID_API_KEY:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    print("📧 Using console email backend for development")
-else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'smtp.sendgrid.net'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = 'apikey'
-    EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
-    DEFAULT_FROM_EMAIL = 'noreply@clean-uganda.onrender.com'
-    SERVER_EMAIL = 'noreply@clean-uganda.onrender.com'
-    
-    # Optimized email settings for Render
-    EMAIL_TIMEOUT = 5
-    print("📧 Using SendGrid SMTP backend")
+# Always use console email backend on Render free tier to avoid timeouts
+# Render's free tier often blocks outbound SMTP connections
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_TIMEOUT = 3  # Very short timeout to prevent hanging
+
+print("📧 Using console email backend - emails will print to console")
+print("💡 For production emails, upgrade Render plan or use external email service")
+
+# Optional: Only try SMTP if explicitly enabled and in production
+ENABLE_SMTP = os.environ.get('ENABLE_SMTP', 'False').lower() == 'true'
+if not DEBUG and ENABLE_SMTP and SENDGRID_API_KEY:
+    try:
+        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+        EMAIL_HOST = 'smtp.sendgrid.net'
+        EMAIL_PORT = 587
+        EMAIL_USE_TLS = True
+        EMAIL_HOST_USER = 'apikey'
+        EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+        DEFAULT_FROM_EMAIL = 'noreply@clean-uganda.onrender.com'
+        SERVER_EMAIL = 'noreply@clean-uganda.onrender.com'
+        print("📧 Using SendGrid SMTP backend (SMTP enabled)")
+    except Exception as e:
+        print(f"⚠️ SMTP setup failed, falling back to console: {e}")
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Template configuration
 TEMPLATES = [
@@ -265,7 +273,7 @@ LOGIN_URL = '/users/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Logging configuration
+# Logging configuration - ENHANCED FOR EMAIL DEBUGGING
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -276,6 +284,10 @@ LOGGING = {
         },
         'simple': {
             'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'email_debug': {
+            'format': '📧 {levelname} {asctime} {module}: {message}',
             'style': '{',
         },
     },
@@ -289,6 +301,10 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': BASE_DIR / 'django_errors.log',
             'formatter': 'verbose',
+        },
+        'email_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'email_debug',
         },
     },
     'root': {
@@ -327,7 +343,7 @@ LOGGING = {
             'propagate': False,
         },
         'report': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console', 'file', 'email_console'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -398,6 +414,7 @@ print(f"🗄️ DATABASE ENGINE: {DATABASES['default'].get('ENGINE', 'Unknown')}
 print(f"📊 DATABASE NAME: {DATABASES['default'].get('NAME', 'Unknown')}")
 print(f"🚀 RENDER: {IS_RENDER}")
 print(f"📧 SENDGRID_API_KEY configured: {bool(SENDGRID_API_KEY)}")
+print(f"📧 EMAIL_BACKEND: {EMAIL_BACKEND}")
 print(f"🔐 SESSION_ENGINE: {SESSION_ENGINE}")
 print(f"📁 MEDIA_ROOT: {MEDIA_ROOT}")
 print(f"📁 STATIC_ROOT: {STATIC_ROOT}")

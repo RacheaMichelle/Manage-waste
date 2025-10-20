@@ -5,12 +5,13 @@ Django settings for waste_management project.
 from pathlib import Path
 import os
 import dj_database_url
+from django.core.management.utils import get_random_secret_key
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
+SECRET_KEY = os.environ.get('SECRET_KEY', get_random_secret_key())
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = [
@@ -33,6 +34,7 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'django.contrib.sites',
     
+    # Custom apps
     'users',
     'waste',
     'matching',
@@ -41,6 +43,8 @@ INSTALLED_APPS = [
     'educ',
     'report',
     'chatbot',
+    
+    # Third-party apps
     'widget_tweaks',
 ]
 
@@ -57,12 +61,14 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'waste_management.urls'
 
-# Security settings - Only enable in production
+# Security settings
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 else:
     SECURE_SSL_REDIRECT = False
 
@@ -111,19 +117,19 @@ if DATABASE_URL:
         base_url = DATABASE_URL.split('?')[0]
         DATABASE_URL = base_url
     
+    # Use dj-database-url for robust configuration
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'neondb',
-            'USER': 'neondb_owner',
-            'PASSWORD': 'npg_qw4cSXLRezU0',
-            'HOST': 'ep-restless-lake-abe1tpdg-pooler.eu-west-2.aws.neon.tech',
-            'PORT': '5432',
-            'OPTIONS': {
-                'sslmode': 'require',
-            },
-        }
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True
+        )
     }
+    
+    # Ensure PostgreSQL engine is used
+    DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
+    
 else:
     # Fallback for local development
     DATABASES = {
@@ -133,6 +139,28 @@ else:
         }
     }
 
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
 # Static files configuration
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
@@ -140,7 +168,7 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# WhiteNoise configuration
+# WhiteNoise configuration for static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Ensure static directories exist
@@ -160,22 +188,10 @@ try:
 except OSError:
     pass
 
-# Password validation
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Site ID for Django sites framework
 SITE_ID = 1
 
 # SEO Settings
@@ -183,15 +199,7 @@ SITE_NAME = "Clean Uganda"
 SITE_DESCRIPTION = "Uganda's leading waste management and recycling platform"
 META_KEYWORDS = "Clean Uganda, waste management Uganda, recycling Kampala, clean environment Uganda"
 
-# Internationalization
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Authentication
+# Authentication URLs
 LOGIN_URL = '/users/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
@@ -200,9 +208,20 @@ LOGOUT_REDIRECT_URL = '/'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
     },
     'root': {
@@ -217,8 +236,46 @@ LOGGING = {
         },
         'django.db.backends': {
             'handlers': ['console'],
-            'level': 'DEBUG',  # This will show SQL queries
+            'level': 'WARNING',  # Set to DEBUG to see SQL queries
+            'propagate': False,
+        },
+        'waste_management': {
+            'handlers': ['console'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
 }
+
+# Django security settings
+if not DEBUG:
+    # Additional security settings for production
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# File upload settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+
+# Cache configuration (using database cache as fallback)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache_table',
+    }
+}
+
+# Custom settings
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB in bytes
+
+# Vercel-specific settings
+IS_VERCEL = os.environ.get('VERCEL') == '1'
+
+if IS_VERCEL:
+    # Vercel-specific configurations
+    print("Running on Vercel environment")
+    
+    # Ensure database connections are handled properly
+    DATABASES['default']['CONN_MAX_AGE'] = 60
+    DATABASES['default']['CONN_HEALTH_CHECKS'] = True

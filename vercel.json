@@ -16,7 +16,6 @@
   "routes": [
     {
       "src": "/static/(.*)",
-      "src": "/migrate",
       "dest": "/static/$1"
     },
     {

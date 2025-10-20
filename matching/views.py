@@ -1,8 +1,10 @@
+# matching/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from users.models import Profile
 from waste.models import WasteListing
 from .models import DismissedMatch, Notification
@@ -134,31 +136,47 @@ def delete_match(request, listing_id):
     messages.success(request, "Match deleted successfully.")
     return redirect('matches')
 
-# API endpoints for AJAX polling
-@login_required
+# API endpoints for AJAX polling - PUBLIC (no login required to prevent redirect loops)
+@csrf_exempt
 def unread_notifications_count(request):
-    count = Notification.objects.filter(
-        recipient=request.user, 
-        is_read=False
-    ).count()
-    return JsonResponse({'count': count})
+    """
+    Public API endpoint for unread notifications count
+    Returns 0 for anonymous users to prevent redirect loops
+    """
+    if request.user.is_authenticated:
+        count = Notification.objects.filter(
+            recipient=request.user, 
+            is_read=False
+        ).count()
+        return JsonResponse({'count': count})
+    else:
+        # Return 0 for anonymous users to prevent redirect loops
+        return JsonResponse({'count': 0})
 
-@login_required
+@csrf_exempt
 def notifications_api(request):
-    notifications = Notification.objects.filter(
-        recipient=request.user
-    ).order_by('-created_at')[:10]
-    
-    data = {
-        'notifications': [
-            {
-                'id': n.id,
-                'message': n.message,
-                'is_read': n.is_read,
-                'created_at': n.created_at.strftime('%Y-%m-%d %H:%M'),
-                'url': f"/notifications/mark-read/{n.id}/" if not n.is_read else ""
-            }
-            for n in notifications
-        ]
-    }
-    return JsonResponse(data)
+    """
+    Public API endpoint for notifications
+    Returns empty array for anonymous users to prevent redirect loops
+    """
+    if request.user.is_authenticated:
+        notifications = Notification.objects.filter(
+            recipient=request.user
+        ).order_by('-created_at')[:10]
+        
+        data = {
+            'notifications': [
+                {
+                    'id': n.id,
+                    'message': n.message,
+                    'is_read': n.is_read,
+                    'created_at': n.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'url': f"/matching/notifications/mark-read/{n.id}/" if not n.is_read else ""
+                }
+                for n in notifications
+            ]
+        }
+        return JsonResponse(data)
+    else:
+        # Return empty array for anonymous users to prevent redirect loops
+        return JsonResponse({'notifications': []})

@@ -90,6 +90,18 @@ if not DEBUG:
         'https://www.cleanuganda.com',
         'https://cleanuganda.com',
     ]
+
+    # Session settings - ADD THIS
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_SAVE_EVERY_REQUEST = False
+
+# Clear existing sessions if corrupted (add this temporarily)
+if os.environ.get('CLEAR_SESSIONS'):
+    from django.contrib.sessions.models import Session
+    Session.objects.all().delete()
     
     # Proxy settings
     USE_X_FORWARDED_HOST = True

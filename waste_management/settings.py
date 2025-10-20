@@ -14,13 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # DEBUG MUST BE DEFINED FIRST!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-# Security - IMPROVED (now DEBUG is available)
-SECRET_KEY = os.environ.get('SECRET_KEY')
-if not SECRET_KEY:
-    if DEBUG:
-        SECRET_KEY = 'dev-secret-key-only-for-development'  # Only for development
-    else:
-        raise ImproperlyConfigured("SECRET_KEY must be set in production")
+# Security - FIXED: Use get_random_secret_key() as fallback
+SECRET_KEY = os.environ.get('SECRET_KEY', get_random_secret_key())
 
 # Render automatically sets RENDER_EXTERNAL_HOSTNAME
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')

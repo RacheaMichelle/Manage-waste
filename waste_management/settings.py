@@ -6,7 +6,7 @@ from pathlib import Path
 import os
 import dj_database_url
 from django.core.management.utils import get_random_secret_key
-from django.core.exceptions import ImproperlyConfigured
+from django.utils import timezone
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,8 +30,8 @@ ALLOWED_HOSTS.extend([
     '127.0.0.1',
     'cleanuganda.com',
     'www.cleanuganda.com',
-    '.vercel.app',  # Keep for reference
-    '.now.sh',      # Keep for reference
+    '.vercel.app',
+    '.now.sh',
 ])
 
 # Application definition
@@ -45,6 +45,9 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'django.contrib.sites',
     
+    # Third-party apps
+    'widget_tweaks',
+    
     # Custom apps
     'users',
     'waste',
@@ -54,9 +57,6 @@ INSTALLED_APPS = [
     'educ',
     'report',
     'chatbot',
-    
-    # Third-party apps
-    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -97,47 +97,46 @@ if not DEBUG:
 else:
     SECURE_SSL_REDIRECT = False
 
-# Session configuration
+# Session configuration - FIXED CORRUPTED SESSIONS
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_NAME = 'cleanuganda_session'
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_SAVE_EVERY_REQUEST = False
+SESSION_SAVE_EVERY_REQUEST = True  # Changed from False to prevent corruption
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
-# Clear existing sessions if corrupted (add this temporarily)
-if os.environ.get('CLEAR_SESSIONS'):
-    try:
-        from django.contrib.sessions.models import Session
-        count = Session.objects.count()
-        Session.objects.all().delete()
-        print(f"🧹 Cleared {count} corrupted sessions")
-    except Exception as e:
-        print(f"⚠️ Could not clear sessions: {e}")
+# Clear corrupted sessions on startup
+try:
+    import django
+    django.setup()
+    from django.contrib.sessions.models import Session
+    corrupted_sessions = Session.objects.filter(expire_date__lt=timezone.now())
+    if corrupted_sessions.exists():
+        print(f"🧹 Clearing {corrupted_sessions.count()} expired sessions")
+        corrupted_sessions.delete()
+except Exception as e:
+    print(f"⚠️ Could not clear sessions: {e}")
 
-# Email Configuration for SendGrid - FIXED & IMPROVED
+# Email Configuration - FIXED & OPTIMIZED
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
-if not SENDGRID_API_KEY and not DEBUG:
-    print("⚠️ WARNING: SENDGRID_API_KEY not set in production")
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'apikey'
-EMAIL_HOST_PASSWORD = SENDGRID_API_KEY or ''  # SECURITY FIXED - No hardcoded key
-DEFAULT_FROM_EMAIL = 'noreply@clean-uganda.onrender.com'
-SERVER_EMAIL = 'noreply@clean-uganda.onrender.com'
-
-# Email timeout settings - OPTIMIZED
-EMAIL_TIMEOUT = 10  # Reduced from 30 seconds to prevent long timeouts
-
-# For development/debugging - use console in development
-if DEBUG:
+if DEBUG or not SENDGRID_API_KEY:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    print("📧 Using console email backend for development")
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.sendgrid.net'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = 'apikey'
+    EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+    DEFAULT_FROM_EMAIL = 'noreply@clean-uganda.onrender.com'
+    SERVER_EMAIL = 'noreply@clean-uganda.onrender.com'
+    
+    # Optimized email settings for Render
+    EMAIL_TIMEOUT = 5  # Reduced from 10 seconds to prevent timeouts
+    print("📧 Using SendGrid SMTP backend")
 
 # Template configuration
 TEMPLATES = [
@@ -158,9 +157,9 @@ TEMPLATES = [
     },
 ]
 
-# Application performance optimizations - FIXED TEMPLATE CACHING
+# Application performance optimizations
 if not DEBUG:
-    # Template caching in production - CORRECTED VERSION
+    # Template caching in production
     TEMPLATES[0]['APP_DIRS'] = False
     TEMPLATES[0]['OPTIONS']['loaders'] = [
         ('django.template.loaders.cached.Loader', [
@@ -237,7 +236,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
-    BASE_DIR,
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
@@ -246,6 +244,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_ALLOW_ALL_ORIGINS = True
+WHITENOISE_ROOT = BASE_DIR / 'staticfiles'
 
 # Ensure static directories exist
 try:
@@ -254,7 +253,7 @@ try:
 except OSError:
     pass
 
-# Media files configuration - FIXED: Removed the syntax error
+# Media files configuration - FIXED FOR RENDER
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -351,6 +350,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'education': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 
@@ -373,7 +377,7 @@ MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB in bytes
 IS_RENDER = os.environ.get('RENDER') == 'true'
 
 if IS_RENDER:
-    print("Running on Render environment")
+    print("🚀 Running on Render environment")
     
     # Render-specific optimizations
     DATABASES['default']['CONN_MAX_AGE'] = 60
@@ -392,21 +396,27 @@ HEALTH_CHECK = {
 
 # Cloudinary configuration (if using)
 if os.environ.get('CLOUDINARY_URL'):
-    import cloudinary
-    import cloudinary.uploader
-    import cloudinary.api
-    
-    cloudinary.config(
-        cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
-        api_key=os.environ.get('CLOUDINARY_API_KEY'),
-        api_secret=os.environ.get('CLOUDINARY_API_SECRET')
-    )
+    try:
+        import cloudinary
+        import cloudinary.uploader
+        import cloudinary.api
+        
+        cloudinary.config(
+            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+            api_key=os.environ.get('CLOUDINARY_API_KEY'),
+            api_secret=os.environ.get('CLOUDINARY_API_SECRET')
+        )
+        print("☁️ Cloudinary configured for media storage")
+    except ImportError:
+        print("⚠️ Cloudinary package not installed")
 
 # Print deployment info for debugging
-print(f"DEBUG: {DEBUG}")
-print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
-print(f"DATABASE ENGINE: {DATABASES['default'].get('ENGINE', 'Unknown')}")
-print(f"DATABASE NAME: {DATABASES['default'].get('NAME', 'Unknown')}")
-print(f"RENDER: {IS_RENDER}")
-print(f"SENDGRID_API_KEY configured: {bool(SENDGRID_API_KEY)}")
-print(f"SESSION_ENGINE: {SESSION_ENGINE}")
+print(f"🔧 DEBUG: {DEBUG}")
+print(f"🌐 ALLOWED_HOSTS: {ALLOWED_HOSTS}")
+print(f"🗄️ DATABASE ENGINE: {DATABASES['default'].get('ENGINE', 'Unknown')}")
+print(f"📊 DATABASE NAME: {DATABASES['default'].get('NAME', 'Unknown')}")
+print(f"🚀 RENDER: {IS_RENDER}")
+print(f"📧 SENDGRID_API_KEY configured: {bool(SENDGRID_API_KEY)}")
+print(f"🔐 SESSION_ENGINE: {SESSION_ENGINE}")
+print(f"📁 MEDIA_ROOT: {MEDIA_ROOT}")
+print(f"📁 STATIC_ROOT: {STATIC_ROOT}")

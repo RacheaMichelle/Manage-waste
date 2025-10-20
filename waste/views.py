@@ -16,7 +16,7 @@ def list_waste(request):
             waste_listing.user = request.user
             waste_listing.save()
             messages.success(request, 'Waste listing created successfully!')
-            return redirect('waste:waste_list')
+            return redirect('waste_list')
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
@@ -38,7 +38,7 @@ def create_waste(request):
             waste_listing.user = request.user
             waste_listing.save()
             messages.success(request, 'Waste listing created successfully!')
-            return redirect('waste:waste_list')
+            return redirect('waste_list')
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
@@ -83,7 +83,7 @@ def delete_waste(request, pk):
     if request.method == 'POST':
         waste_listing.delete()
         messages.success(request, 'Waste listing deleted successfully!')
-        return redirect('waste:waste_list')
+        return redirect('waste_list')
     
     return render(request, 'waste/delete.html', {
         'listing': waste_listing

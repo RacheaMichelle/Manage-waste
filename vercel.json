@@ -4,10 +4,6 @@
     {
       "src": "waste_management/wsgi.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "build_files.sh",
-      "use": "@vercel/static-build"
     }
   ],
   "routes": [
@@ -27,5 +23,10 @@
     "PYTHONPATH": "/var/task",
     "DJANGO_SETTINGS_MODULE": "waste_management.settings",
     "ALLOWED_HOSTS": ".vercel.app,.now.sh,localhost,127.0.0.1"
+  },
+  "build": {
+    "env": {
+      "PYTHONPATH": "/var/task"
+    }
   }
 }

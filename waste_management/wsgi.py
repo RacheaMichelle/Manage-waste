@@ -1,18 +1,16 @@
-"""
-WSGI config for waste_management project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
-"""
-
 import os
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'waste_management.settings')
 
-app = get_wsgi_application()
+# Initialize Django
+application = get_wsgi_application()
 
-# Vercel requires the variable to be named "application"
-application = app
+# Run migrations on startup in production
+if os.environ.get('VERCEL') == '1' and os.environ.get('DEBUG', 'False').lower() == 'false':
+    try:
+        from django.core.management import execute_from_command_line
+        execute_from_command_line(['manage.py', 'migrate', '--noinput'])
+        print("Database migrations completed on startup")
+    except Exception as e:
+        print(f"Migration error on startup: {e}")

@@ -1,3 +1,4 @@
+# waste/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -16,7 +17,7 @@ def list_waste(request):
             waste_listing.user = request.user
             waste_listing.save()
             messages.success(request, 'Waste listing created successfully!')
-            return redirect('waste_list')
+            return redirect('waste_list')  # CHANGED: removed 'waste:' namespace
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
@@ -38,7 +39,7 @@ def create_waste(request):
             waste_listing.user = request.user
             waste_listing.save()
             messages.success(request, 'Waste listing created successfully!')
-            return redirect('waste_list')
+            return redirect('waste_list')  # CHANGED: removed 'waste:' namespace
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
@@ -61,7 +62,7 @@ def update_waste(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, 'Waste listing updated successfully!')
-            return redirect('waste:waste_list')
+            return redirect('waste_list')  # CHANGED: removed 'waste:' namespace
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
@@ -83,7 +84,7 @@ def delete_waste(request, pk):
     if request.method == 'POST':
         waste_listing.delete()
         messages.success(request, 'Waste listing deleted successfully!')
-        return redirect('waste_list')
+        return redirect('waste_list')  # CHANGED: removed 'waste:' namespace
     
     return render(request, 'waste/delete.html', {
         'listing': waste_listing

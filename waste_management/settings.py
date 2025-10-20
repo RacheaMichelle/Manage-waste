@@ -95,6 +95,7 @@ DEFAULT_FROM_EMAIL = 'rachealnannozi77@gmail.com'
 # Use database sessions
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
+# Template configuration - FIXED
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -113,11 +114,23 @@ TEMPLATES = [
     },
 ]
 
+# Application performance optimizations - FIXED TEMPLATE CACHING
+if not DEBUG:
+    # Template caching in production - CORRECTED VERSION
+    TEMPLATES[0]['APP_DIRS'] = False
+    TEMPLATES[0]['OPTIONS']['loaders'] = [
+        ('django.template.loaders.cached.Loader', [
+            'django.template.loaders.filesystem.Loader',
+            'django.template.loaders.app_directories.Loader',
+        ]),
+    ]
+
 WSGI_APPLICATION = 'waste_management.wsgi.application'
 
-# DATABASE CONFIGURATION FOR NEON.POSTGRESQL + RENDER
-DATABASE_URL = os.environ.get('DATABASE_URL')
+# DATABASE CONFIGURATION FOR NEON.POSTGRESQL + RENDER - FIXED
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://neondb_owner:npg_qw4cSXLRezU0@ep-restless-lake-abe1tpdg-pooler.eu-west-2.aws.neon.tech/neondb')
 
+# Always use Neon PostgreSQL on Render
 if DATABASE_URL:
     # Clean the database URL for Neon
     if DATABASE_URL.startswith('postgres://'):
@@ -303,16 +316,6 @@ HEALTH_CHECK = {
     'MEMORY_MIN': 100,     # in MB
 }
 
-# Application performance optimizations
-if not DEBUG:
-    # Template caching in production
-    TEMPLATES[0]['OPTIONS']['loaders'] = [
-        ('django.template.loaders.cached.Loader', [
-            'django.template.loaders.filesystem.Loader',
-            'django.template.loaders.app_directories.Loader',
-        ]),
-    ]
-
 # Cloudinary configuration (if using)
 if os.environ.get('CLOUDINARY_URL'):
     import cloudinary
@@ -329,4 +332,5 @@ if os.environ.get('CLOUDINARY_URL'):
 print(f"DEBUG: {DEBUG}")
 print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
 print(f"DATABASE ENGINE: {DATABASES['default'].get('ENGINE', 'Unknown')}")
+print(f"DATABASE NAME: {DATABASES['default'].get('NAME', 'Unknown')}")
 print(f"RENDER: {IS_RENDER}")

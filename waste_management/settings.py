@@ -83,24 +83,23 @@ if not DEBUG:
 else:
     SECURE_SSL_REDIRECT = False
 
-# Email Configuration for Render
+# Email Configuration for SendGrid
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'rachealnannozi77@gmail.com'
-EMAIL_HOST_PASSWORD = 'iaegpsdmhisbhwfp'  # Your app password
-DEFAULT_FROM_EMAIL = 'rachealnannozi77@gmail.com'
-SERVER_EMAIL = 'rachealnannozi77@gmail.com'
+EMAIL_HOST_USER = 'apikey'  # This is literally the word 'apikey'
+EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
+DEFAULT_FROM_EMAIL = 'noreply@clean-uganda.onrender.com'
+SERVER_EMAIL = 'noreply@clean-uganda.onrender.com'
 
 # Email timeout settings
-EMAIL_TIMEOUT = 30  # seconds
+EMAIL_TIMEOUT = 30
 
-# For development/debugging
+# For development/debugging - use console in development
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    # In production, use SMTP but with better error handling
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # Use database sessions
 SESSION_ENGINE = "django.contrib.sessions.backends.db"

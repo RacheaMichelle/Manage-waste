@@ -11,15 +11,16 @@ from django.core.exceptions import ImproperlyConfigured
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Security - IMPROVED
+# DEBUG MUST BE DEFINED FIRST!
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+
+# Security - IMPROVED (now DEBUG is available)
 SECRET_KEY = os.environ.get('SECRET_KEY')
 if not SECRET_KEY:
     if DEBUG:
         SECRET_KEY = 'dev-secret-key-only-for-development'  # Only for development
     else:
         raise ImproperlyConfigured("SECRET_KEY must be set in production")
-
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 # Render automatically sets RENDER_EXTERNAL_HOSTNAME
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')

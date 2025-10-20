@@ -233,6 +233,14 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+MEDIA_URL = '/media/'
+    
+    # For production, consider using Whitenoise for media files
+    # or switch to cloud storage like AWS S3, Cloudinary
+else:
+    # Development settings
+    MEDIA_URL = '/media/'
+
 # Static files configuration
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [

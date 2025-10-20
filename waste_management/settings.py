@@ -90,24 +90,31 @@ if not DEBUG:
         'https://www.cleanuganda.com',
         'https://cleanuganda.com',
     ]
-
-    # Session settings - ADD THIS
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
-SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_SAVE_EVERY_REQUEST = False
-
-# Clear existing sessions if corrupted (add this temporarily)
-if os.environ.get('CLEAR_SESSIONS'):
-    from django.contrib.sessions.models import Session
-    Session.objects.all().delete()
     
     # Proxy settings
     USE_X_FORWARDED_HOST = True
     USE_X_FORWARDED_PORT = True
 else:
     SECURE_SSL_REDIRECT = False
+
+# Session configuration - FIXED INDENTATION (moved outside if/else)
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_NAME = 'cleanuganda_session'
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_SAVE_EVERY_REQUEST = False
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# Clear existing sessions if corrupted (add this temporarily)
+if os.environ.get('CLEAR_SESSIONS'):
+    try:
+        from django.contrib.sessions.models import Session
+        count = Session.objects.count()
+        Session.objects.all().delete()
+        print(f"🧹 Cleared {count} corrupted sessions")
+    except Exception as e:
+        print(f"⚠️ Could not clear sessions: {e}")
 
 # Email Configuration for SendGrid - FIXED & IMPROVED
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
@@ -131,9 +138,6 @@ if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
-# Use database sessions
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 # Template configuration
 TEMPLATES = [
@@ -317,6 +321,16 @@ LOGGING = {
             'level': 'WARNING',
             'propagate': False,
         },
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
         'waste_management': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
@@ -328,6 +342,11 @@ LOGGING = {
             'propagate': False,
         },
         'report': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'matching': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
@@ -390,3 +409,4 @@ print(f"DATABASE ENGINE: {DATABASES['default'].get('ENGINE', 'Unknown')}")
 print(f"DATABASE NAME: {DATABASES['default'].get('NAME', 'Unknown')}")
 print(f"RENDER: {IS_RENDER}")
 print(f"SENDGRID_API_KEY configured: {bool(SENDGRID_API_KEY)}")
+print(f"SESSION_ENGINE: {SESSION_ENGINE}")

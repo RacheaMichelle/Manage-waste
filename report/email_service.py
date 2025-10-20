@@ -30,7 +30,7 @@ Clean Uganda Environmental Platform
 Making Uganda Cleaner, Together
 """
             # Use a simple recipient for testing
-            recipient_list = ['admin@cleanuganda.com']  # Replace with actual district emails
+            recipient_list = get_district_emails(report.district)  # Replace with actual district emails
             
             # Send simple email without attachments
             send_mail(

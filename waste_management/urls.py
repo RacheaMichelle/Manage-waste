@@ -1,8 +1,9 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
+from django.views.static import serve
 from django.contrib.sitemaps.views import sitemap
 from django.http import HttpResponse
 import os
@@ -36,6 +37,10 @@ def serve_google_verification_file(request):
             content_type='text/plain'
         )(request)
 
+def health_check(request):
+    """Simple health check endpoint for Render"""
+    return HttpResponse("OK", status=200)
+
 urlpatterns = [
     path('', views.home, name='home'),
     path('admin/', admin.site.urls),
@@ -54,13 +59,26 @@ urlpatterns = [
         template_name='robots.txt', 
         content_type='text/plain'
     )),
+    
+    # Health check for Render
+    path('health/', health_check, name='health_check'),
 
     # Multiple methods for Google verification
     path('google00cc440b909d6e2d.html', google_verification),  # Method 1: Direct response
     path('google-verification/', serve_google_verification_file),  # Method 2: File system
 ]
 
+# Serve media files in production (for Render)
+if not settings.DEBUG:
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve, {
+            'document_root': settings.MEDIA_ROOT,
+        }),
+    ]
+
 # Serve static and media files in development
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Fallback for static files in production (already handled by WhiteNoise)

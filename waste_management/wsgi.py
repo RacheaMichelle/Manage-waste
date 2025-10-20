@@ -1,16 +1,16 @@
 import os
+import sys
 from django.core.wsgi import get_wsgi_application
+
+# Add the project directory to the Python path
+project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_dir)
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'waste_management.settings')
 
-# Initialize Django
-application = get_wsgi_application()
-
-# Run migrations on startup in production
-if os.environ.get('VERCEL') == '1' and os.environ.get('DEBUG', 'False').lower() == 'false':
-    try:
-        from django.core.management import execute_from_command_line
-        execute_from_command_line(['manage.py', 'migrate', '--noinput'])
-        print("Database migrations completed on startup")
-    except Exception as e:
-        print(f"Migration error on startup: {e}")
+try:
+    application = get_wsgi_application()
+except Exception as e:
+    # If there's an error, print it but don't crash
+    print(f"Error initializing Django: {e}")
+    raise

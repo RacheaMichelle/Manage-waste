@@ -67,12 +67,9 @@ def update_waste(request, pk):
     else:
         form = WasteListingForm(instance=waste_listing)
     
-    listings = WasteListing.objects.filter(user=request.user).order_by('-created_at')
-    return render(request, 'waste/waste_form.html', {
+    return render(request, 'waste/update.html', {
         'form': form,
-        'listings': listings,
         'editing': True,
-        'active_tab': 'list'
     })
 
 @login_required
@@ -85,6 +82,6 @@ def delete_waste(request, pk):
         messages.success(request, 'Waste listing deleted successfully!')
         return redirect('waste_list')
     
-    return render(request, 'waste/waste_confirm_delete.html', {
+    return render(request, 'waste/delete.html', {
         'listing': waste_listing
     })

@@ -1,3 +1,6 @@
+from django import forms
+from .models import WasteListing
+
 class WasteListingForm(forms.ModelForm):
     class Meta:
         model = WasteListing

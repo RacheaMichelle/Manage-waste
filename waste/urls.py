@@ -4,11 +4,14 @@ from . import views
 
 
 urlpatterns = [
-    path('', views.waste_listings, name='waste_list'), 
-    path('create/', views.create_waste_listing, name='waste_create'),
-    path('', views.waste_listings, name='waste_listings'),
+    # Main views with your desired URL names
+    path('', views.list_waste, name='waste_list'),
+    path('create/', views.create_waste, name='waste_listing_create'),
+    path('update/<int:pk>/', views.update_waste, name='waste_update'),
+    path('delete/<int:pk>/', views.delete_waste, name='waste_delete'),
+    
+    # Additional views
+    path('my-listings/', views.waste_listings, name='waste_listings'),
     path('<int:pk>/', views.waste_listing_detail, name='waste_detail'),
-    path('<int:pk>/update/', views.update_waste_listing, name='waste_update'),
-    path('<int:pk>/delete/', views.delete_waste_listing, name='waste_delete'),
     path('public/', views.public_listings, name='public_listings'),
 ]

@@ -12,4 +12,8 @@ python manage.py collectstatic --noinput
 echo "Running database migrations..."
 python manage.py migrate --noinput
 
+# Create necessary groups and permissions
+echo "Setting up initial data..."
+python manage.py createcachetable
+
 echo "Build completed successfully!"

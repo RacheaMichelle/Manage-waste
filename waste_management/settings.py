@@ -83,15 +83,25 @@ if not DEBUG:
 else:
     SECURE_SSL_REDIRECT = False
 
-# Email Configuration
+# Email Configuration for Render
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'rachealnannozi77@gmail.com'
-EMAIL_HOST_PASSWORD = 'iaegpsdmhisbhwfp'
+EMAIL_HOST_PASSWORD = 'iaegpsdmhisbhwfp'  # Your app password
 DEFAULT_FROM_EMAIL = 'rachealnannozi77@gmail.com'
+SERVER_EMAIL = 'rachealnannozi77@gmail.com'
 
+# Email timeout settings
+EMAIL_TIMEOUT = 30  # seconds
+
+# For development/debugging
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    # In production, use SMTP but with better error handling
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # Use database sessions
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 

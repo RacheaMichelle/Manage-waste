@@ -23,10 +23,5 @@
     "PYTHONPATH": "/var/task",
     "DJANGO_SETTINGS_MODULE": "waste_management.settings",
     "ALLOWED_HOSTS": ".vercel.app,.now.sh,localhost,127.0.0.1"
-  },
-  "build": {
-    "env": {
-      "PYTHONPATH": "/var/task"
-    }
   }
 }

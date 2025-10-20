@@ -6,7 +6,6 @@ from pathlib import Path
 import os
 import dj_database_url
 from django.core.management.utils import get_random_secret_key
-from django.utils import timezone
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -97,26 +96,14 @@ if not DEBUG:
 else:
     SECURE_SSL_REDIRECT = False
 
-# Session configuration - FIXED CORRUPTED SESSIONS
+# Session configuration - FIXED
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_NAME = 'cleanuganda_session'
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_SAVE_EVERY_REQUEST = True  # Changed from False to prevent corruption
+SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
-
-# Clear corrupted sessions on startup
-try:
-    import django
-    django.setup()
-    from django.contrib.sessions.models import Session
-    corrupted_sessions = Session.objects.filter(expire_date__lt=timezone.now())
-    if corrupted_sessions.exists():
-        print(f"🧹 Clearing {corrupted_sessions.count()} expired sessions")
-        corrupted_sessions.delete()
-except Exception as e:
-    print(f"⚠️ Could not clear sessions: {e}")
 
 # Email Configuration - FIXED & OPTIMIZED
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
@@ -135,7 +122,7 @@ else:
     SERVER_EMAIL = 'noreply@clean-uganda.onrender.com'
     
     # Optimized email settings for Render
-    EMAIL_TIMEOUT = 5  # Reduced from 10 seconds to prevent timeouts
+    EMAIL_TIMEOUT = 5
     print("📧 Using SendGrid SMTP backend")
 
 # Template configuration
@@ -170,19 +157,13 @@ if not DEBUG:
 
 WSGI_APPLICATION = 'waste_management.wsgi.application'
 
-# DATABASE CONFIGURATION FOR NEON.POSTGRESQL + RENDER - FIXED
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://neondb_owner:npg_qw4cSXLRezU0@ep-restless-lake-abe1tpdg-pooler.eu-west-2.aws.neon.tech/neondb')
+# DATABASE CONFIGURATION - FIXED VERSION
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# Always use Neon PostgreSQL on Render
 if DATABASE_URL:
     # Clean the database URL for Neon
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    
-    # Remove any query parameters that might cause issues
-    if '?' in DATABASE_URL:
-        base_url = DATABASE_URL.split('?')[0]
-        DATABASE_URL = base_url
     
     # Use dj-database-url for robust configuration
     DATABASES = {
@@ -194,8 +175,11 @@ if DATABASE_URL:
         )
     }
     
-    # Ensure PostgreSQL engine is used and add connection optimizations
-    DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
+    # Ensure PostgreSQL engine is explicitly set
+    if 'ENGINE' not in DATABASES['default']:
+        DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
+    
+    # Add connection optimizations
     DATABASES['default']['OPTIONS'] = {
         'sslmode': 'require',
         'connect_timeout': 30,
@@ -209,6 +193,9 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+print(f"✅ DATABASE CONFIGURED: {DATABASES['default'].get('ENGINE', 'Unknown')}")
+print(f"✅ DATABASE NAME: {DATABASES['default'].get('NAME', 'Unknown')}")
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -239,12 +226,11 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# WhiteNoise configuration for static files - ENHANCED
+# WhiteNoise configuration for static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_ALLOW_ALL_ORIGINS = True
-WHITENOISE_ROOT = BASE_DIR / 'staticfiles'
 
 # Ensure static directories exist
 try:
@@ -253,7 +239,7 @@ try:
 except OSError:
     pass
 
-# Media files configuration - FIXED FOR RENDER
+# Media files configuration
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -279,7 +265,7 @@ LOGIN_URL = '/users/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Logging configuration - ENHANCED
+# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -362,7 +348,7 @@ LOGGING = {
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 
-# Cache configuration (using database cache as fallback)
+# Cache configuration
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
@@ -382,11 +368,6 @@ if IS_RENDER:
     # Render-specific optimizations
     DATABASES['default']['CONN_MAX_AGE'] = 60
     DATABASES['default']['CONN_HEALTH_CHECKS'] = True
-    
-    # Ensure static files are served efficiently
-    WHITENOISE_USE_FINDERS = True
-    WHITENOISE_MANIFEST_STRICT = False
-    WHITENOISE_ALLOW_ALL_ORIGINS = True
 
 # Health check configuration for Render
 HEALTH_CHECK = {

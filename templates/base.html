@@ -309,7 +309,7 @@
     });
   </script>
 
-  <!-- AJAX Polling for Notifications - FIXED VERSION -->
+  <!-- FIXED AJAX Polling for Notifications - NO REDIRECT LOOPS -->
   <script>
     let currentNotificationCount = 0;
     let pollInterval;
@@ -324,34 +324,34 @@
       // Only poll if user is authenticated
       if (!isUserAuthenticated()) {
         console.log('User not authenticated, skipping notification poll');
+        updateNotificationBadges(0); // Hide badges for anonymous users
         return;
       }
 
       fetch('/matching/api/unread-count/')
         .then(response => {
-          // Handle redirects (302 status) - user needs to login
-          if (response.status === 302 || response.status === 403) {
-            console.log('Authentication required for notifications');
-            stopNotificationPolling();
-            return null;
-          }
-          
+          // Handle any HTTP errors gracefully
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
-          
           return response.json();
         })
         .then(data => {
           if (data && typeof data.count === 'number') {
             updateNotificationBadges(data.count);
+          } else {
+            console.error('Invalid response format from notification API');
+            updateNotificationBadges(0);
           }
         })
         .catch(error => {
           console.error('Error fetching notifications:', error);
-          // Don't retry immediately for auth errors
-          if (!error.message.includes('302') && !error.message.includes('403')) {
-            setTimeout(pollNotifications, 10000); // Retry after 10 seconds for other errors
+          // Don't show errors to users, just hide badges
+          updateNotificationBadges(0);
+          
+          // Retry after 30 seconds for network errors
+          if (error.message.includes('Network') || error.message.includes('Failed to fetch')) {
+            setTimeout(pollNotifications, 30000);
           }
         });
     }
@@ -391,11 +391,15 @@
     // Show browser notification
     function showBrowserNotification(count) {
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Clean Uganda', {
-          body: `You have ${count} unread notification${count > 1 ? 's' : ''}`,
-          icon: '{% static "images/logo.png" %}',
-          tag: 'clean-uganda-notification'
-        });
+        try {
+          new Notification('Clean Uganda', {
+            body: `You have ${count} unread notification${count > 1 ? 's' : ''}`,
+            icon: '{% static "images/logo.png" %}',
+            tag: 'clean-uganda-notification'
+          });
+        } catch (error) {
+          console.log('Browser notifications not supported:', error);
+        }
       }
     }
 
@@ -420,8 +424,13 @@
 
     // Start polling when page loads
     document.addEventListener('DOMContentLoaded', function() {
+      // Request notification permission
+      requestNotificationPermission();
+
       // Only start polling if user is authenticated
       if (isUserAuthenticated()) {
+        console.log('Starting notification polling for authenticated user');
+        
         // Initial poll after a short delay
         setTimeout(pollNotifications, 1000);
         
@@ -431,13 +440,21 @@
         // Also poll when page becomes visible (user returns to tab)
         document.addEventListener('visibilitychange', function() {
           if (!document.hidden && isUserAuthenticated()) {
+            console.log('Page visible, checking notifications');
             pollNotifications();
           }
         });
-      }
 
-      // Request notification permission
-      requestNotificationPermission();
+        // Poll when user interacts with the page (optional)
+        document.addEventListener('click', function() {
+          if (isUserAuthenticated()) {
+            pollNotifications();
+          }
+        });
+      } else {
+        console.log('User not authenticated, notification polling disabled');
+        updateNotificationBadges(0); // Ensure badges are hidden
+      }
     });
 
     // Stop polling when page is unloaded

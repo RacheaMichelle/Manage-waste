@@ -2,6 +2,7 @@
 import logging
 from django.core.mail import send_mail
 from django.conf import settings
+from .district_contacts import get_district_emails  # ADD THIS IMPORT
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +30,8 @@ Please check the Clean Uganda dashboard for photos and detailed information.
 Clean Uganda Environmental Platform
 Making Uganda Cleaner, Together
 """
-            # Use a simple recipient for testing
-            recipient_list = get_district_emails(report.district)  # Replace with actual district emails
+            # Use REAL district emails
+            recipient_list = get_district_emails(report.district)  # This will now work
             
             # Send simple email without attachments
             send_mail(
@@ -41,7 +42,7 @@ Making Uganda Cleaner, Together
                 fail_silently=False
             )
             
-            logger.info(f"✅ Email sent successfully for report #{report.id}")
+            logger.info(f"✅ Email sent successfully for report #{report.id} to {report.district} district")
             return True
             
         except Exception as e:

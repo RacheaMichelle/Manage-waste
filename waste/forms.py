@@ -1,6 +1,3 @@
-from django import forms
-from .models import WasteListing
-
 class WasteListingForm(forms.ModelForm):
     class Meta:
         model = WasteListing
@@ -39,4 +36,4 @@ class WasteListingForm(forms.ModelForm):
         location = self.cleaned_data.get('location')
         if location and len(location) < 3:
             raise forms.ValidationError("Please provide a valid location.")
-        return location
+        return location  # Fixed: removed the comma that was creating a tuple

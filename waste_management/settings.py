@@ -6,12 +6,19 @@ from pathlib import Path
 import os
 import dj_database_url
 from django.core.management.utils import get_random_secret_key
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Security
-SECRET_KEY = os.environ.get('SECRET_KEY', 'i(s37lgb*j3pwnfz9z9a8z$b3j1-5sk0!1dkv^-_-#cr02mo)q')
+# Security - IMPROVED
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'dev-secret-key-only-for-development'  # Only for development
+    else:
+        raise ImproperlyConfigured("SECRET_KEY must be set in production")
+
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 # Render automatically sets RENDER_EXTERNAL_HOSTNAME
@@ -69,7 +76,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'waste_management.urls'
 
-# Security settings
+# Security settings - ENHANCED
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -80,31 +87,47 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    
+    # Trusted origins for CSRF
+    CSRF_TRUSTED_ORIGINS = [
+        'https://clean-uganda.onrender.com',
+        'https://www.cleanuganda.com',
+        'https://cleanuganda.com',
+    ]
+    
+    # Proxy settings
+    USE_X_FORWARDED_HOST = True
+    USE_X_FORWARDED_PORT = True
 else:
     SECURE_SSL_REDIRECT = False
 
-# Email Configuration for SendGrid
+# Email Configuration for SendGrid - FIXED & IMPROVED
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
+if not SENDGRID_API_KEY and not DEBUG:
+    print("⚠️ WARNING: SENDGRID_API_KEY not set in production")
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'apikey'  # This is literally the word 'apikey'
-EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
+EMAIL_HOST_USER = 'apikey'
+EMAIL_HOST_PASSWORD = SENDGRID_API_KEY or ''  # SECURITY FIXED - No hardcoded key
 DEFAULT_FROM_EMAIL = 'noreply@clean-uganda.onrender.com'
 SERVER_EMAIL = 'noreply@clean-uganda.onrender.com'
 
-# Email timeout settings
-EMAIL_TIMEOUT = 30
+# Email timeout settings - OPTIMIZED
+EMAIL_TIMEOUT = 10  # Reduced from 30 seconds to prevent long timeouts
 
 # For development/debugging - use console in development
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
 # Use database sessions
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
-# Template configuration - FIXED
+# Template configuration
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -206,8 +229,11 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# WhiteNoise configuration for static files
+# WhiteNoise configuration for static files - ENHANCED
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_MANIFEST_STRICT = False
+WHITENOISE_ALLOW_ALL_ORIGINS = True
 
 # Ensure static directories exist
 try:
@@ -242,7 +268,7 @@ LOGIN_URL = '/users/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Logging configuration
+# Logging configuration - ENHANCED
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -252,7 +278,7 @@ LOGGING = {
             'style': '{',
         },
         'simple': {
-            'format': '{levelname} {message}',
+            'format': '{levelname} {asctime} {module} {message}',
             'style': '{',
         },
     },
@@ -261,6 +287,12 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'django_errors.log',
+            'formatter': 'verbose',
+        },
     },
     'root': {
         'handlers': ['console'],
@@ -268,7 +300,7 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -278,12 +310,17 @@ LOGGING = {
             'propagate': False,
         },
         'waste_management': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
         },
         'users': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'report': {
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -344,3 +381,4 @@ print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
 print(f"DATABASE ENGINE: {DATABASES['default'].get('ENGINE', 'Unknown')}")
 print(f"DATABASE NAME: {DATABASES['default'].get('NAME', 'Unknown')}")
 print(f"RENDER: {IS_RENDER}")
+print(f"SENDGRID_API_KEY configured: {bool(SENDGRID_API_KEY)}")

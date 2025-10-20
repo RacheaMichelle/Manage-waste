@@ -18,6 +18,20 @@
       </p>
     </div>
 
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-6">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} p-4 rounded-lg mb-2 {% if message.tags == 'success' %}bg-green-50 border border-green-200 text-green-800{% else %}bg-red-50 border border-red-200 text-red-800{% endif %}">
+        <div class="flex items-center">
+          <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-2"></i>
+          {{ message }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Form Section -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- Main Form -->
@@ -56,11 +70,6 @@
                   <i class="fas fa-chevron-down text-gray-400"></i>
                 </div>
               </div>
-              {% if form.waste_type.errors %}
-              <div class="text-red-600 mt-2 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
-                <i class="fas fa-exclamation-circle mr-2"></i>{{ form.waste_type.errors }}
-              </div>
-              {% endif %}
             </div>
             
             <!-- Quantity -->
@@ -69,11 +78,7 @@
                 <i class="fas fa-weight text-blue-500 mr-2"></i>Quantity *
               </label>
               {{ form.quantity }}
-              {% if form.quantity.errors %}
-                <div class="text-red-600 mt-2 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
-                  <i class="fas fa-exclamation-circle mr-2"></i>{{ form.quantity.errors }}
-                </div>
-              {% endif %}
+              <p class="text-xs text-gray-500 mt-1">e.g., 5 kg, 10 bags, 1 truckload</p>
             </div>
             
             <!-- Description -->
@@ -82,11 +87,7 @@
                 <i class="fas fa-file-alt text-purple-500 mr-2"></i>Description
               </label>
               {{ form.description }}
-              {% if form.description.errors %}
-              <div class="text-red-600 mt-2 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
-                <i class="fas fa-exclamation-circle mr-2"></i>{{ form.description.errors }}
-              </div>
-              {% endif %}
+              <p class="text-xs text-gray-500 mt-1">Max 100 characters. Describe your waste material</p>
             </div>
             
             <!-- Location -->
@@ -95,14 +96,10 @@
                 <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>Location *
               </label>
               {{ form.location }}
-              {% if form.location.errors %}
-              <div class="text-red-600 mt-2 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
-                <i class="fas fa-exclamation-circle mr-2"></i>{{ form.location.errors }}
-              </div>
-              {% endif %}
+              <p class="text-xs text-gray-500 mt-1">Enter your location for collectors to find you</p>
             </div>
             
-            <!-- Image Upload - FIXED SECTION -->
+            <!-- Image Upload - FIXED VERSION -->
             <div class="form-group">
               <label class="block text-sm font-semibold text-gray-700 mb-2">
                 <i class="fas fa-camera text-yellow-500 mr-2"></i>Waste Image (Optional)
@@ -111,7 +108,7 @@
               <!-- Custom file upload area -->
               <div id="image-upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors duration-200 cursor-pointer bg-gray-50">
                 <!-- The actual file input -->
-                <input type="file" name="image" id="image-input" accept="image/*" class="hidden">
+                {{ form.image }}
                 
                 <!-- Upload icon and text -->
                 <div id="upload-content">
@@ -129,12 +126,6 @@
                   </button>
                 </div>
               </div>
-              
-              {% if form.image.errors %}
-              <div class="text-red-600 mt-2 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
-                <i class="fas fa-exclamation-circle mr-2"></i>{{ form.image.errors }}
-              </div>
-              {% endif %}
             </div>
             
             <!-- Submit Button -->
@@ -205,14 +196,14 @@
             {% for listing in listings %}
             <div class="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow duration-300">
               <div class="flex justify-between items-start mb-4">
-                <span class="waste-type-badge waste-type-{{ listing.waste_type }}">
+                <span class="waste-type-badge {{ listing.get_waste_type_class }}">
                   {{ listing.get_waste_type_display }}
                 </span>
-                <span class="text-lg font-bold text-gray-800">{{ listing.quantity }}</span>
+                <span class="text-lg font-bold text-gray-800">{{ listing.display_quantity }}</span>
               </div>
               
               {% if listing.description %}
-              <p class="text-gray-600 mb-4 line-clamp-2">{{ listing.description }}</p>
+              <p class="text-gray-600 mb-4">{{ listing.short_description }}</p>
               {% endif %}
               
               <div class="flex items-center text-sm text-gray-500 mb-4">
@@ -220,11 +211,16 @@
                 {{ listing.location }}
               </div>
               
-              {% if listing.image %}
+              {% if listing.get_image_url %}
               <div class="mb-4">
-                <img src="{{ listing.image.url }}" alt="Waste Image" class="w-full h-48 object-cover rounded-lg shadow-md">
+                <img src="{{ listing.get_image_url }}" alt="Waste Image" class="w-full h-48 object-cover rounded-lg shadow-md">
               </div>
               {% endif %}
+              
+              <div class="flex items-center text-sm text-gray-500 mb-4">
+                <i class="fas fa-clock mr-2"></i>
+                {{ listing.created_at|timesince }} ago
+              </div>
               
               <div class="flex space-x-3">
                 <a href="{% url 'waste_update' listing.pk %}" 
@@ -288,7 +284,7 @@
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .line-clamp-2 {
@@ -360,7 +356,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const imageInput = document.getElementById('image-input');
+  const imageInput = document.querySelector('input[type="file"][name="image"]');
   const imageUploadArea = document.getElementById('image-upload-area');
   const uploadContent = document.getElementById('upload-content');
   const imagePreview = document.getElementById('image-preview');
@@ -368,9 +364,20 @@ document.addEventListener('DOMContentLoaded', function() {
   const fileName = document.getElementById('file-name');
   const removeImageBtn = document.getElementById('remove-image');
 
+  // Hide the default file input and style our custom area
+  if (imageInput) {
+    imageInput.style.display = 'none';
+    
+    // Check if there's already a file (on form validation error)
+    if (imageInput.files.length > 0) {
+      const file = imageInput.files[0];
+      showImagePreview(file);
+    }
+  }
+
   // Click on upload area triggers file input
   imageUploadArea.addEventListener('click', function(e) {
-    if (e.target !== removeImageBtn) {
+    if (e.target !== removeImageBtn && !e.target.closest('#remove-image')) {
       imageInput.click();
     }
   });
@@ -379,32 +386,7 @@ document.addEventListener('DOMContentLoaded', function() {
   imageInput.addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-      if (!validTypes.includes(file.type)) {
-        alert('Please select a valid image file (JPEG, PNG, or GIF)');
-        return;
-      }
-
-      // Validate file size (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
-        return;
-      }
-
-      // Show preview
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        previewImage.src = e.target.result;
-        fileName.textContent = file.name;
-        uploadContent.classList.add('hidden');
-        imagePreview.classList.remove('hidden');
-        
-        // Change border color to indicate success
-        imageUploadArea.classList.add('border-green-400');
-        imageUploadArea.classList.remove('border-gray-300');
-      };
-      reader.readAsDataURL(file);
+      showImagePreview(file);
     }
   });
 
@@ -414,31 +396,63 @@ document.addEventListener('DOMContentLoaded', function() {
     imageInput.value = '';
     uploadContent.classList.remove('hidden');
     imagePreview.classList.add('hidden');
-    imageUploadArea.classList.remove('border-green-400');
-    imageUploadArea.classList.add('border-gray-300');
+    imageUploadArea.classList.remove('border-green-400', 'bg-green-50');
+    imageUploadArea.classList.add('border-gray-300', 'bg-gray-50');
   });
 
   // Drag and drop functionality
   imageUploadArea.addEventListener('dragover', function(e) {
     e.preventDefault();
-    imageUploadArea.classList.add('dragover');
+    imageUploadArea.classList.add('dragover', 'border-green-400', 'bg-green-50');
   });
 
   imageUploadArea.addEventListener('dragleave', function(e) {
     e.preventDefault();
-    imageUploadArea.classList.remove('dragover');
+    if (!imageUploadArea.contains(e.relatedTarget)) {
+      imageUploadArea.classList.remove('dragover', 'border-green-400', 'bg-green-50');
+    }
   });
 
   imageUploadArea.addEventListener('drop', function(e) {
     e.preventDefault();
-    imageUploadArea.classList.remove('dragover');
+    imageUploadArea.classList.remove('dragover', 'border-green-400', 'bg-green-50');
     
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       imageInput.files = files;
-      imageInput.dispatchEvent(new Event('change'));
+      const changeEvent = new Event('change', { bubbles: true });
+      imageInput.dispatchEvent(changeEvent);
     }
   });
+
+  function showImagePreview(file) {
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, or GIF)');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      previewImage.src = e.target.result;
+      fileName.textContent = file.name;
+      uploadContent.classList.add('hidden');
+      imagePreview.classList.remove('hidden');
+      
+      // Change border color to indicate success
+      imageUploadArea.classList.add('border-green-400', 'bg-green-50');
+      imageUploadArea.classList.remove('border-gray-300', 'bg-gray-50');
+    };
+    reader.readAsDataURL(file);
+  }
 
   // Prevent drag and drop default behavior
   document.addEventListener('dragover', function(e) {

@@ -125,18 +125,17 @@ def profile_edit(request):
     return render(request, 'users/profile_edit.html', {'form': form})
 
 @csrf_exempt
-def debug_database(request):
-    """Check database status"""
-    from django.contrib.auth import get_user_model
+def check_neon_db(request):
+    """Check Neon database connection"""
     from django.db import connection
-    import json
+    from django.http import JsonResponse
     
     try:
         # Test database connection
         with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
-            db_test = "✅ Database connected"
-        
+            cursor.execute("SELECT version()")
+            db_version = cursor.fetchone()[0]
+            
         # Check if auth_user table exists
         with connection.cursor() as cursor:
             cursor.execute("""
@@ -147,26 +146,11 @@ def debug_database(request):
             """)
             auth_user_exists = cursor.fetchone()[0]
         
-        # Check if users_profile table exists  
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'users_profile'
-                );
-            """)
-            profile_exists = cursor.fetchone()[0]
-        
-        # Count users
-        User = get_user_model()
-        user_count = User.objects.count()
-        
         return JsonResponse({
-            'database': db_test,
+            'status': '✅ Neon Database Connected',
+            'postgres_version': db_version,
             'auth_user_table_exists': auth_user_exists,
-            'users_profile_table_exists': profile_exists,
-            'total_users': user_count,
-            'tables': list(connection.introspection.table_names())
+            'database_name': connection.settings_dict['NAME'],
         })
         
     except Exception as e:

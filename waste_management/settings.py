@@ -11,17 +11,25 @@ from django.core.management.utils import get_random_secret_key
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security
-SECRET_KEY = os.environ.get('SECRET_KEY', get_random_secret_key())
+SECRET_KEY = os.environ.get('SECRET_KEY', 'i(s37lgb*j3pwnfz9z9a8z$b3j1-5sk0!1dkv^-_-#cr02mo)q')
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = [
+# Render automatically sets RENDER_EXTERNAL_HOSTNAME
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME, '.onrender.com']
+else:
+    ALLOWED_HOSTS = []
+
+# Add your existing allowed hosts
+ALLOWED_HOSTS.extend([
     'localhost',
     '127.0.0.1',
-    '.vercel.app',
-    '.now.sh',
     'cleanuganda.com',
     'www.cleanuganda.com',
-]
+    '.vercel.app',  # Keep for reference
+    '.now.sh',      # Keep for reference
+])
 
 # Application definition
 INSTALLED_APPS = [
@@ -69,6 +77,9 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 else:
     SECURE_SSL_REDIRECT = False
 
@@ -104,11 +115,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'waste_management.wsgi.application'
 
-# DATABASE CONFIGURATION - FIXED FOR NEON.POSTGRESQL
+# DATABASE CONFIGURATION FOR NEON.POSTGRESQL + RENDER
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if DATABASE_URL:
-    # Clean the database URL - remove any problematic parameters
+    # Clean the database URL for Neon
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
     
@@ -127,8 +138,12 @@ if DATABASE_URL:
         )
     }
     
-    # Ensure PostgreSQL engine is used
+    # Ensure PostgreSQL engine is used and add connection optimizations
     DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
+    DATABASES['default']['OPTIONS'] = {
+        'sslmode': 'require',
+        'connect_timeout': 30,
+    }
     
 else:
     # Fallback for local development
@@ -236,7 +251,7 @@ LOGGING = {
         },
         'django.db.backends': {
             'handlers': ['console'],
-            'level': 'WARNING',  # Set to DEBUG to see SQL queries
+            'level': 'WARNING',
             'propagate': False,
         },
         'waste_management': {
@@ -244,15 +259,13 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'users': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
-
-# Django security settings
-if not DEBUG:
-    # Additional security settings for production
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
 
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
@@ -269,13 +282,51 @@ CACHES = {
 # Custom settings
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB in bytes
 
-# Vercel-specific settings
-IS_VERCEL = os.environ.get('VERCEL') == '1'
+# Render-specific optimizations
+IS_RENDER = os.environ.get('RENDER') == 'true'
 
-if IS_VERCEL:
-    # Vercel-specific configurations
-    print("Running on Vercel environment")
+if IS_RENDER:
+    print("Running on Render environment")
     
-    # Ensure database connections are handled properly
+    # Render-specific optimizations
     DATABASES['default']['CONN_MAX_AGE'] = 60
     DATABASES['default']['CONN_HEALTH_CHECKS'] = True
+    
+    # Ensure static files are served efficiently
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_MANIFEST_STRICT = False
+    WHITENOISE_ALLOW_ALL_ORIGINS = True
+
+# Health check configuration for Render
+HEALTH_CHECK = {
+    'DISK_USAGE_MAX': 90,  # percent
+    'MEMORY_MIN': 100,     # in MB
+}
+
+# Application performance optimizations
+if not DEBUG:
+    # Template caching in production
+    TEMPLATES[0]['OPTIONS']['loaders'] = [
+        ('django.template.loaders.cached.Loader', [
+            'django.template.loaders.filesystem.Loader',
+            'django.template.loaders.app_directories.Loader',
+        ]),
+    ]
+
+# Cloudinary configuration (if using)
+if os.environ.get('CLOUDINARY_URL'):
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
+    
+    cloudinary.config(
+        cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+        api_key=os.environ.get('CLOUDINARY_API_KEY'),
+        api_secret=os.environ.get('CLOUDINARY_API_SECRET')
+    )
+
+# Print deployment info for debugging
+print(f"DEBUG: {DEBUG}")
+print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
+print(f"DATABASE ENGINE: {DATABASES['default'].get('ENGINE', 'Unknown')}")
+print(f"RENDER: {IS_RENDER}")

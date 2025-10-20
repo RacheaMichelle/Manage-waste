@@ -135,7 +135,7 @@
             There are currently no active waste listings. Check back later or create your own listing.
           </p>
           {% if user.is_authenticated %}
-          <a href="{% url 'waste_create' %}" class="inline-flex items-center bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+          <a href="{% url 'waste_listing_create' %}" class="inline-flex items-center bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <i class="fas fa-plus-circle mr-2"></i>Create Listing
           </a>
           {% else %}

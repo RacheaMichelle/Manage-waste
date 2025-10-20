@@ -81,6 +81,9 @@ def waste_listing_detail(request, pk):
 def public_listings(request):
     """Public view of active waste listings"""
     listings = WasteListing.objects.filter(is_active=True).select_related('user')
+    unique_users = listings.values('user').distinct().count()
+    
     return render(request, 'waste/public_listings.html', {
-        'listings': listings
+        'listings': listings,
+        'unique_users': unique_users
     })

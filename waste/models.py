@@ -1,8 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
-from django.core.files.storage import default_storage
-import os
+from cloudinary.models import CloudinaryField  # CORRECT IMPORT
 
 class WasteListing(models.Model):
     WASTE_TYPE_CHOICES = [
@@ -23,7 +22,19 @@ class WasteListing(models.Model):
     quantity = models.CharField(max_length=50, blank=True, help_text="e.g., 2 heaps, 5 sacks, 3 bags")
     description = models.CharField(max_length=100, blank=True, help_text="Additional details about the waste (optional)")
     location = models.CharField(max_length=100)
-    image = models.ImageField(upload_to='waste_images/', blank=True, null=True)
+    
+    # REPLACE ImageField WITH CloudinaryField
+    image = CloudinaryField(
+        'image',
+        folder='clean_uganda/waste_listings',
+        blank=True, 
+        null=True,
+        transformation=[
+            {'width': 800, 'height': 600, 'crop': 'limit'},
+            {'quality': 'auto:good'},
+        ]
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -40,46 +51,19 @@ class WasteListing(models.Model):
         return reverse('waste_detail', kwargs={'pk': self.pk})
 
     def get_image_url(self):
-        """Safe method to get image URL"""
-        if self.image and hasattr(self.image, 'url'):
+        """Safe method to get image URL from Cloudinary"""
+        if self.image:
             try:
-                # Check if file exists in storage
-                if default_storage.exists(self.image.name):
-                    return self.image.url
+                return self.image.url
             except:
-                pass
+                return None
         return None
 
     def image_exists(self):
-        """Check if image file actually exists"""
-        if self.image:
-            try:
-                return default_storage.exists(self.image.name)
-            except:
-                return False
-        return False
+        """Check if image exists in Cloudinary"""
+        return bool(self.image)
 
-    def delete(self, *args, **kwargs):
-        """Override delete to remove image file when object is deleted"""
-        if self.image:
-            # Delete the image file from storage
-            if default_storage.exists(self.image.name):
-                default_storage.delete(self.image.name)
-        super().delete(*args, **kwargs)
-
-    def save(self, *args, **kwargs):
-        """Override save to handle image cleanup"""
-        # If this is an update and image is changed, delete old image
-        if self.pk:
-            try:
-                old_instance = WasteListing.objects.get(pk=self.pk)
-                if old_instance.image and old_instance.image != self.image:
-                    if default_storage.exists(old_instance.image.name):
-                        default_storage.delete(old_instance.image.name)
-            except WasteListing.DoesNotExist:
-                pass
-        
-        super().save(*args, **kwargs)
+    # REMOVE the manual file deletion methods - Cloudinary handles this automatically
 
     @property
     def display_quantity(self):

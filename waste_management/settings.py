@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     
     # Third-party apps
     'widget_tweaks',
+    'cloudinary',
+    'cloudinary_storage',  # ADD THIS
     
     # Custom apps
     'users',
@@ -247,15 +249,51 @@ try:
 except OSError:
     pass
 
-# Media files configuration
-MEDIA_URL = '/media/'
+# ============================================================================
+# CLOUDINARY CONFIGURATION - PERMANENT IMAGE STORAGE
+# ============================================================================
+
+# Cloudinary configuration
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+}
+
+# Use Cloudinary for media files
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+# Media URL configuration (Cloudinary will handle this)
+MEDIA_URL = '/media/'  # This becomes a proxy to Cloudinary
+
+# For local development fallback (optional)
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Ensure media directory exists
+# Ensure media directory exists for local development
 try:
     os.makedirs(MEDIA_ROOT, exist_ok=True)
 except OSError:
     pass
+
+# Cloudinary-specific settings
+CLOUDINARY = {
+    'cloud_name': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'api_key': os.environ.get('CLOUDINARY_API_KEY'),
+    'api_secret': os.environ.get('CLOUDINARY_API_SECRET'),
+    'secure': True
+}
+
+# Print Cloudinary status
+if all([os.environ.get('CLOUDINARY_CLOUD_NAME'), os.environ.get('CLOUDINARY_API_KEY'), os.environ.get('CLOUDINARY_API_SECRET')]):
+    print("☁️ Cloudinary configured for permanent media storage")
+    print(f"📁 Cloud Name: {os.environ.get('CLOUDINARY_CLOUD_NAME')}")
+else:
+    print("⚠️ Cloudinary not fully configured - check environment variables")
+    print("💡 Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET")
+
+# ============================================================================
+# END CLOUDINARY CONFIGURATION
+# ============================================================================
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -290,6 +328,10 @@ LOGGING = {
             'format': '📧 {levelname} {asctime} {module}: {message}',
             'style': '{',
         },
+        'cloudinary_debug': {
+            'format': '☁️ {levelname} {asctime} {module}: {message}',
+            'style': '{',
+        },
     },
     'handlers': {
         'console': {
@@ -306,6 +348,10 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'email_debug',
         },
+        'cloudinary_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'cloudinary_debug',
+        },
     },
     'root': {
         'handlers': ['console'],
@@ -314,6 +360,16 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'cloudinary': {
+            'handlers': ['cloudinary_console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'cloudinary_storage': {
+            'handlers': ['cloudinary_console'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -357,6 +413,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'waste': {
+            'handlers': ['console', 'file', 'cloudinary_console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 
@@ -391,22 +452,6 @@ HEALTH_CHECK = {
     'MEMORY_MIN': 100,     # in MB
 }
 
-# Cloudinary configuration (if using)
-if os.environ.get('CLOUDINARY_URL'):
-    try:
-        import cloudinary
-        import cloudinary.uploader
-        import cloudinary.api
-        
-        cloudinary.config(
-            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
-            api_key=os.environ.get('CLOUDINARY_API_KEY'),
-            api_secret=os.environ.get('CLOUDINARY_API_SECRET')
-        )
-        print("☁️ Cloudinary configured for media storage")
-    except ImportError:
-        print("⚠️ Cloudinary package not installed")
-
 # Print deployment info for debugging
 print(f"🔧 DEBUG: {DEBUG}")
 print(f"🌐 ALLOWED_HOSTS: {ALLOWED_HOSTS}")
@@ -416,5 +461,5 @@ print(f"🚀 RENDER: {IS_RENDER}")
 print(f"📧 SENDGRID_API_KEY configured: {bool(SENDGRID_API_KEY)}")
 print(f"📧 EMAIL_BACKEND: {EMAIL_BACKEND}")
 print(f"🔐 SESSION_ENGINE: {SESSION_ENGINE}")
-print(f"📁 MEDIA_ROOT: {MEDIA_ROOT}")
-print(f"📁 STATIC_ROOT: {STATIC_ROOT}")
+print(f"📁 MEDIA_URL: {MEDIA_URL}")
+print(f"☁️ CLOUDINARY STORAGE: {DEFAULT_FILE_STORAGE}")
